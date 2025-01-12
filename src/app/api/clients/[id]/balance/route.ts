@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 import { use } from 'react';
 import { PrismaClient } from '@prisma/client';
 
@@ -27,7 +27,7 @@ export async function POST(
     const clientId = parseInt(context.params.id);
     console.log('Client ID:', clientId);
 
-    const result = await prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>) => {
+    const result = await prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
       const client = await tx.client.findUnique({
         where: { id: clientId }
       });

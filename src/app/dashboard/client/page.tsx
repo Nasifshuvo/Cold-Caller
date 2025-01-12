@@ -1,7 +1,7 @@
 "use client"
 import FileUploader from "./components/FileUploader";
 import { LeadsData } from "@/types/leadsData";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LeadsTable from "./components/LeadsTable";
 import { createOutboundCall } from "@/utils/createOutboundCall";
 import { getCall } from "@/utils/getCall";
@@ -10,10 +10,30 @@ import { Button } from "@/components/ui/Button";
 export default function Dashboard() {
   const [leadData, setLeadData] = useState<LeadsData[]>([]);
   const [callMessages, setCallMessages] = useState<string>();
+  const [balance, setBalance] = useState<number>(0);
+
+  // Fetch balance from DB
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch('/api/clients/balance');
+      const data = await response.json();
+      if (response.ok) {
+        setBalance(parseFloat(data.balance));
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBalance();
+  }, []);
 
   // Helper function to check if any calls are not initiated
   const hasNotInitiatedCalls = (leads: LeadsData[]) => {
-    return leads.some(lead => !lead.callStatus || lead.callStatus === 'Not Initiated');
+    const minimumBalance = 2; // $2 minimum balance required
+    return leads.some(lead => !lead.callStatus || lead.callStatus === 'Not Initiated') 
+      && balance >= minimumBalance;
   };
 
   // Update initiateCalls function
@@ -106,7 +126,11 @@ export default function Dashboard() {
             }
             shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
         >
-          {hasNotInitiatedCalls(leadData) ? 'Initiate Calls' : 'No Calls to Process'}
+          {hasNotInitiatedCalls(leadData) 
+            ? 'Initiate Calls' 
+            : balance < 2 
+              ? 'Insufficient Balance (Min $2)' 
+              : 'No Calls to Process'}
         </button>
 
         {callMessages && (

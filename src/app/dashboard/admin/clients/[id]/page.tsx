@@ -12,7 +12,6 @@ interface Client {
   phone: string;
   balance: string;
   vapiKey?: string;
-  vapiEndpoint?: string;
   vapiAssistantId?: string;
   vapiPhoneNumberId?: string;
   active: boolean;
@@ -84,7 +83,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
           name: formData.get('name'),
           phone: formData.get('phone'),
           vapiKey: formData.get('vapiKey'),
-          vapiEndpoint: formData.get('vapiEndpoint'),
+          vapiAssistantId: formData.get('assistantId'),
         }),
       });
 
@@ -176,8 +175,8 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vapiKey: formData.get('vapiKey'),
-          vapiAssistantId: formData.get('vapiAssistantId'),
-          vapiPhoneNumberId: formData.get('vapiPhoneNumberId')
+          vapiAssistantId: formData.get('assistantId'),
+          vapiPhoneNumberId: formData.get('phoneId')
         }),
       });
 
@@ -234,9 +233,14 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
               defaultValue={client.vapiKey || ''}
             />
             <Input
-              label="VAPI Endpoint"
-              name="vapiEndpoint"
-              defaultValue={client.vapiEndpoint || ''}
+              label="Assistant ID"
+              name="assistantId"
+              defaultValue={client.vapiAssistantId || ''}
+            />
+            <Input
+              label="Phone Number ID"
+              name="phoneId"
+              defaultValue={client.vapiPhoneNumberId || ''}
             />
             <Button type="submit" isLoading={loading}>Save Changes</Button>
           </form>
@@ -404,13 +408,13 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
               />
               <Input
                 label="Assistant ID"
-                name="vapiAssistantId"
+                name="assistantId"
                 defaultValue={client.vapiAssistantId || ''}
                 required
               />
               <Input
                 label="Phone Number ID"
-                name="vapiPhoneNumberId"
+                name="phoneId"
                 defaultValue={client.vapiPhoneNumberId || ''}
                 required
               />

@@ -78,4 +78,51 @@ model Log {
   createdAt   DateTime @default(now())
 
   @@index([event])
+}
+
+model LeadImport {
+  id          Int       @id @default(autoincrement())
+  clientId    Int
+  client      Client    @relation(fields: [clientId], references: [id])
+  fileName    String
+  totalLeads  Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  leads       Lead[]    // Relation to leads created from this import
+
+  @@index([clientId])
+}
+
+model Lead {
+  id            Int         @id @default(autoincrement())
+  clientId      Int
+  client        Client      @relation(fields: [clientId], references: [id])
+  importId      Int?        // Optional as some leads might be created manually
+  leadImport    LeadImport? @relation(fields: [importId], references: [id])
+  phoneNumber   String
+  callId        String?
+  callStatus    String      @default("Not Initiated")
+  response      String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  calls         Call[]
+
+  @@index([clientId])
+  @@index([phoneNumber])
+  @@index([importId])
+}
+
+model Call {
+  id          Int       @id @default(autoincrement())
+  leadId      Int
+  lead        Lead      @relation(fields: [leadId], references: [id])
+  clientId    Int
+  client      Client    @relation(fields: [clientId], references: [id])
+  callStatus  String    @default("Not Initiated")
+  response    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([clientId])
 } 
