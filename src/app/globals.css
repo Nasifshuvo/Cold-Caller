@@ -2,20 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Defining the fallback colors */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --fallback-b1: #f0f0f0; /* Light background color */
+  --fallback-bc: #333333; /* Light text color */
+  
+  /* Define your custom colors (if needed) */
+  --b1: #1c1c1e; /* Dark background color */
+  --bc: #f1f1f1; /* Dark text color */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Use the CSS variables with a fall-back to ensure compatibility */
+[data-theme="dark"], .dark {
+  background-color: var(--b1, #1c1c1e);
+  color: var(--bc, #f1f1f1);
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+[data-theme="light"], .light {
+  background-color: var(--fallback-b1, #f0f0f0);
+  color: var(--fallback-bc, #333333);
 }

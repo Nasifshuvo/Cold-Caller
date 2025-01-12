@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  password  String
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client?
+
+  @@index([email])
+  @@index([roleId])
+}
+
+model Client {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  phone         String
+  userId        Int       @unique
+  user          User      @relation(fields: [userId], references: [id])
+  balance       Decimal   @default(0) @db.Decimal(10, 2)
+  vapiKey       String?   @unique
+  vapiSecret    String?
+  vapiEndpoint  String?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  transactions  Transaction[]
+  vapiAssistantId    String?
+  vapiPhoneNumberId  String?
+
+  @@index([email])
+  @@index([userId])
+  @@index([vapiKey])
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  amount    Decimal  @db.Decimal(10, 2)
+  type      String   // 'CREDIT' or 'DEBIT'
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
+}
+
+model Log {
+  id          Int      @id @default(autoincrement())
+  event       String   @db.VarChar(255)
+  description Json     @db.Json
+  createdAt   DateTime @default(now())
+
+  @@index([event])
+} 
