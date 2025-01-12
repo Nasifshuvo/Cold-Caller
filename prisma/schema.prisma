@@ -38,26 +38,25 @@ model User {
 }
 
 model Client {
-  id            Int       @id @default(autoincrement())
-  name          String
-  email         String    @unique
-  phone         String
-  userId        Int       @unique
-  user          User      @relation(fields: [userId], references: [id])
-  balance       Decimal   @default(0) @db.Decimal(10, 2)
-  vapiKey       String?   @unique
-  vapiSecret    String?
-  vapiEndpoint  String?
-  active        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  transactions  Transaction[]
-  vapiAssistantId    String?
-  vapiPhoneNumberId  String?
+  id                Int           @id @default(autoincrement())
+  name              String?
+  email             String        @unique
+  phone             String
+  userId            Int           @unique
+  user              User          @relation(fields: [userId], references: [id])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  active            Boolean       @default(true)
+  balance           Decimal       @default(0) @db.Decimal(10, 2)
+  vapiKey           String?       @unique
+  vapiAssistantId   String?
+  vapiPhoneNumberId String?
+  leads             Lead[]
+  calls             Call[]
+  leadImports       LeadImport[]
+  transactions      Transaction[]
 
-  @@index([email])
   @@index([userId])
-  @@index([vapiKey])
 }
 
 model Transaction {
@@ -88,7 +87,7 @@ model LeadImport {
   totalLeads  Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  leads       Lead[]    // Relation to leads created from this import
+  leads       Lead[]
 
   @@index([clientId])
 }
@@ -97,10 +96,10 @@ model Lead {
   id            Int         @id @default(autoincrement())
   clientId      Int
   client        Client      @relation(fields: [clientId], references: [id])
-  importId      Int?        // Optional as some leads might be created manually
+  importId      Int?
   leadImport    LeadImport? @relation(fields: [importId], references: [id])
   phoneNumber   String
-  callId        String?
+  name        String?
   callStatus    String      @default("Not Initiated")
   response      String?
   createdAt     DateTime    @default(now())
@@ -110,6 +109,7 @@ model Lead {
   @@index([clientId])
   @@index([phoneNumber])
   @@index([importId])
+  @@unique([clientId, phoneNumber], name: "clientId_phoneNumber")
 }
 
 model Call {
