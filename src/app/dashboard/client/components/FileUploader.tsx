@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect } from "react";
 import { LeadsData } from "@/types/leadsData";
-import { createLeadsFromImport } from "@/lib/utils/leads";
 export default function FileUploader({leadData, setLeadData}: {leadData: LeadsData[], setLeadData: (data: LeadsData[]) => void}) {
     const [message, setMessage] = useState<string>("");
     const [isDragging, setIsDragging] = useState<boolean>(false);
