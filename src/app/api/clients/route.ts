@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 import * as bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
-    const result = await prisma.$transaction(async (tx: PrismaClient) => {
+    const result = await prisma.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
       const user = await tx.user.create({
         data: {
           email: body.email,
@@ -80,10 +80,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ data: result });
-  } catch (error: any) {
-    console.error('POST client error:', error?.message || 'Unknown error');
+  } catch (error) {
+    console.error('POST client error:', error);
     
-    if (error?.code === 'P2002') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
     }
 

@@ -1,9 +1,22 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LeadsData } from "@/types/leadsData";
-export default function FileUploader({leadData, setLeadData}: {leadData: LeadsData[], setLeadData: (data: LeadsData[]) => void}) {
+export default function FileUploader({setLeadData}: {
+  setLeadData: (data: LeadsData[]) => void
+}) {
     const [message, setMessage] = useState<string>("");
     const [isDragging, setIsDragging] = useState<boolean>(false);
+    const [clientId, setClientId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchClientId = async () => {
+            const response = await fetch('/api/clients/me');
+            const data = await response.json();
+            setClientId(data.id);
+        };
+
+        fetchClientId();
+    }, []);
 
     const handleDownloadSample = async (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -24,44 +37,65 @@ export default function FileUploader({leadData, setLeadData}: {leadData: LeadsDa
     };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!clientId) {
+            setMessage('Client ID not available');
+            return;
+        }
+
         const file = event.target.files?.[0];
         if (!file) return;
-        // if (!file || !session?.user?.id) return;
-    
+
         const formData = new FormData();
         formData.append('file', file);
-        // formData.append('userId', session.user.id);
-    
+        console.log("Going to upload file");
+
         try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const result = await response.json();
-          
-          if (result.success) {
+            // First, upload the file
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const result = await response.json();
+            
+            if (!result.success) {
+                setMessage(result.message || "Upload failed");
+                return;
+            }
+            console.log("Result:", result);
+            console.log("Creating Leads...");
+            // Then create leads through the API endpoint
+            const createResponse = await fetch('/api/clients/leads/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    clientId,
+                    fileName: file.name,
+                    leads: result.data
+                }),
+            });
+
+            console.log('Sending data:', {
+                clientId,
+                fileName: file.name,
+                leads: result.data
+            });
+
+            const createResult = await createResponse.json();
+            if (!createResponse.ok) {
+                throw new Error(createResult.error || 'Failed to create leads');
+            }
+
             setMessage("Upload successful!");
-            console.log("Phones:", result.data);
-            prepareLeadData(result.data);
-            // fetchLeads(); // Refresh leads after upload
-          } else {
-            setMessage(result.message || "Upload failed");
-          }
+            setLeadData(result.data);
+            
         } catch (error) {
-          setMessage("Error uploading file");
-          console.error(error);
+            setMessage("Error uploading file");
+            console.error(error);
         }
-      };
-      const prepareLeadData = (phones: {phoneNumber: string, createdAt: string}[]) => {
-        const leadData: LeadsData[] = phones.map((phone: any) => ({
-            phoneNumber: phone.phoneNumber,
-            callId: "",
-            callStatus: "Not Initiated",
-            response: "-",
-            createdAt: phone.createdAt
-        }));
-        setLeadData(leadData);
-    }
+    };
+
     return (
         <div className="w-full max-w-xl mx-auto p-6">
             <div 

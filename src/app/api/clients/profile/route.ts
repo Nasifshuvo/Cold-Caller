@@ -24,6 +24,7 @@ export async function GET() {
       phone: user.client.phone
     });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
   }
 }

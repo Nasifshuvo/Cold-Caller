@@ -17,7 +17,7 @@ export default async function handler(
     // Parse form data
     const form = formidable();
     const [fields] = await new Promise<[formidable.Fields]>((resolve, reject) => {
-      form.parse(req, (err, fields, files) => {
+      form.parse(req, (err, fields) => {
         if (err) reject(err);
         resolve([fields]);
       });

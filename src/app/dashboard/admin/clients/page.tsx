@@ -11,8 +11,8 @@ interface Client {
   phone: string;
   balance: number;
   vapiKey?: string;
-  vapiSecret?: string;
-  vapiEndpoint?: string;
+  vapiAssistantId?: string;
+  vapiPhoneNumberId?: string;
   active: boolean;
   createdAt: string;
   user: {
@@ -104,8 +104,8 @@ export default function ClientsPage() {
         },
         body: JSON.stringify({
           vapiKey: formData.get('vapiKey'),
-          vapiSecret: formData.get('vapiSecret'),
-          vapiEndpoint: formData.get('vapiEndpoint'),
+          vapiAssistantId: formData.get('assistantId'),
+          vapiPhoneNumberId: formData.get('phoneId')
         }),
       });
 
@@ -192,7 +192,7 @@ export default function ClientsPage() {
         </table>
       </div>
 
-      {/* Updated Modal */}
+      {/* Add Client Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
@@ -254,16 +254,16 @@ export default function ClientsPage() {
                   placeholder="Enter VAPI key"
                 />
                 <Input
-                  label="VAPI Secret"
-                  name="vapiSecret"
-                  type="password"
-                  placeholder="Enter VAPI secret"
+                  label="Assistant ID"
+                  name="assistantId"
+                  type="text"
+                  placeholder="Enter Assistant ID"
                 />
                 <Input
-                  label="VAPI Endpoint"
-                  name="vapiEndpoint"
-                  type="url"
-                  placeholder="https://api.example.com"
+                  label="Phone Number ID"
+                  name="phoneId"
+                  type="text"
+                  placeholder="Enter Phone Number ID"
                 />
               </div>
 
@@ -301,18 +301,18 @@ export default function ClientsPage() {
                 placeholder="Enter VAPI key"
               />
               <Input
-                label="VAPI Secret"
-                name="vapiSecret"
-                type="password"
+                label="Assistant ID"
+                name="assistantId"
+                type="text"
                 required
-                placeholder="Enter VAPI secret"
+                placeholder="Enter Assistant ID"
               />
               <Input
-                label="VAPI Endpoint"
-                name="vapiEndpoint"
-                type="url"
+                label="Phone Number ID"
+                name="phoneId"
+                type="text"
                 required
-                placeholder="https://api.example.com"
+                placeholder="Enter Phone Number ID"
               />
               <div className="flex justify-end space-x-3">
                 <Button

@@ -1,19 +1,38 @@
 "use client"
 import FileUploader from "./components/FileUploader";
 import { LeadsData } from "@/types/leadsData";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LeadsTable from "./components/LeadsTable";
 import { createOutboundCall } from "@/utils/createOutboundCall";
 import { getCall } from "@/utils/getCall";
-import { Button } from "@/components/ui/Button";
 
 export default function Dashboard() {
   const [leadData, setLeadData] = useState<LeadsData[]>([]);
   const [callMessages, setCallMessages] = useState<string>();
+  const [balance, setBalance] = useState<number>(0);
+
+  // Fetch balance from DB
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch('/api/clients/balance');
+      const data = await response.json();
+      if (response.ok) {
+        setBalance(parseFloat(data.balance));
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBalance();
+  }, []);
 
   // Helper function to check if any calls are not initiated
   const hasNotInitiatedCalls = (leads: LeadsData[]) => {
-    return leads.some(lead => !lead.callStatus || lead.callStatus === 'Not Initiated');
+    const minimumBalance = 2; // $2 minimum balance required
+    return leads.some(lead => !lead.callStatus || lead.callStatus === 'Not Initiated') 
+      && balance >= minimumBalance;
   };
 
   // Update initiateCalls function
@@ -74,27 +93,9 @@ export default function Dashboard() {
     setCallMessages(`All calls completed`);
   };
 
-  const handleDownloadSample = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/clients/sample-csv');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'sample-messages.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Download error:', error);
-    }
-  };
-
   return(
     <div>
-      <FileUploader leadData={leadData} setLeadData={setLeadData}/>
+      <FileUploader setLeadData={setLeadData}/>
       <div className="flex items-center justify-between mx-auto p-4 space-x-4">
         <button 
           onClick={initiateCalls}
@@ -106,7 +107,11 @@ export default function Dashboard() {
             }
             shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
         >
-          {hasNotInitiatedCalls(leadData) ? 'Initiate Calls' : 'No Calls to Process'}
+          {hasNotInitiatedCalls(leadData) 
+            ? 'Initiate Calls' 
+            : balance < 2 
+              ? 'Insufficient Balance (Min $2)' 
+              : 'No Calls to Process'}
         </button>
 
         {callMessages && (
@@ -120,9 +125,6 @@ export default function Dashboard() {
       <div className="table-container">
         <LeadsTable leadData={leadData}/>
       </div>
-      {/* <Button onClick={handleDownloadSample} variant="secondary">
-        Download Sample CSV
-      </Button> */}
     </div>
   )
 }

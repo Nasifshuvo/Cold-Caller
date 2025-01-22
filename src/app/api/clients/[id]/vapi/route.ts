@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 
 export async function PUT(
   request: Request,
@@ -19,8 +19,6 @@ export async function PUT(
       where: { id: parseInt(id) },
       data: {
         vapiKey: body.vapiKey,
-        vapiSecret: body.vapiSecret,
-        vapiEndpoint: body.vapiEndpoint,
         vapiAssistantId: body.vapiAssistantId,
         vapiPhoneNumberId: body.vapiPhoneNumberId
       }

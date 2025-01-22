@@ -4,8 +4,8 @@ import { usePathname } from "next/navigation";
 import { 
   HomeIcon, 
   UserIcon,
-  ChatBubbleLeftIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  DocumentIcon
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -14,8 +14,8 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard/client', icon: HomeIcon },
     { name: 'Profile', href: '/dashboard/client/profile', icon: UserIcon },
-    { name: 'Chat History', href: '/dashboard/client/chat-history', icon: ChatBubbleLeftIcon },
     { name: 'Billing', href: '/dashboard/client/billing', icon: CreditCardIcon },
+    { name: 'Imports', href: '/dashboard/client/imports', icon: DocumentIcon },
   ];
 
   return (

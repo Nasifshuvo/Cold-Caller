@@ -47,7 +47,6 @@ export const authOptions: NextAuthOptions = {
     jwt: async ({ token, user }) => {
       if (user) {
         token.role = user.role;
-        token.balance = user.balance;
       }
       return token;
     },

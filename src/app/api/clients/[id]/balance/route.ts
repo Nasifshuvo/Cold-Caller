@@ -1,18 +1,20 @@
-import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-import { use } from 'react';
-import { PrismaClient } from '@prisma/client';
+import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
-  request: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await context.params;
+
+    const clientId = parseInt(id);
 
     const body = await request.json();
     console.log('Request body:', body);
@@ -24,49 +26,46 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
-    const clientId = parseInt(context.params.id);
     console.log('Client ID:', clientId);
 
-    const result = await prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>) => {
-      const client = await tx.client.findUnique({
-        where: { id: clientId }
+    const result = await prisma.$transaction(async (prisma) => {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
       });
 
       if (!client) {
         throw new Error('Client not found');
       }
 
-      const updatedClient = await tx.client.update({
+      const updatedClient = await prisma.client.update({
         where: { id: clientId },
         data: {
           balance: {
-            increment: amount
-          }
-        }
+            increment: amount,
+          },
+        },
       });
 
-      const transaction = await tx.transaction.create({
+      const transaction = await prisma.transaction.create({
         data: {
           amount: amount,
           type: 'CREDIT',
-          clientId: clientId
-        }
+          clientId: clientId,
+        },
       });
 
       return {
         client: updatedClient,
-        transaction: transaction
+        transaction: transaction,
       };
     });
 
     return NextResponse.json({ data: result });
-
   } catch (error) {
     console.error('Balance update failed:', error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to add balance' 
-    }, { 
-      status: 500 
-    });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to add balance' },
+      { status: 500 }
+    );
   }
-} 
+}
