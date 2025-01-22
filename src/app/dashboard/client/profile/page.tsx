@@ -23,6 +23,7 @@ export default function ProfilePage() {
         const data = await response.json();
         setProfile(data);
       } catch (error) {
+        console.error('Failed to load profile:', error);
         setError('Failed to load profile');
       } finally {
         setLoading(false);
@@ -53,6 +54,7 @@ export default function ProfilePage() {
       setProfile(updatedProfile);
       setIsEditing(false);
     } catch (error) {
+      console.error('Failed to update profile:', error);
       setError('Failed to update profile');
     } finally {
       setLoading(false);

@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import LeadsTable from "./components/LeadsTable";
 import { createOutboundCall } from "@/utils/createOutboundCall";
 import { getCall } from "@/utils/getCall";
-import { Button } from "@/components/ui/Button";
 
 export default function Dashboard() {
   const [leadData, setLeadData] = useState<LeadsData[]>([]);
@@ -94,27 +93,9 @@ export default function Dashboard() {
     setCallMessages(`All calls completed`);
   };
 
-  const handleDownloadSample = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/clients/sample-csv');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'sample-messages.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Download error:', error);
-    }
-  };
-
   return(
     <div>
-      <FileUploader leadData={leadData} setLeadData={setLeadData}/>
+      <FileUploader setLeadData={setLeadData}/>
       <div className="flex items-center justify-between mx-auto p-4 space-x-4">
         <button 
           onClick={initiateCalls}
@@ -144,9 +125,6 @@ export default function Dashboard() {
       <div className="table-container">
         <LeadsTable leadData={leadData}/>
       </div>
-      {/* <Button onClick={handleDownloadSample} variant="secondary">
-        Download Sample CSV
-      </Button> */}
     </div>
   )
 }

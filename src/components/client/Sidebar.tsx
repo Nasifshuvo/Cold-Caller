@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import { 
   HomeIcon, 
   UserIcon,
-  ChatBubbleLeftIcon,
   CreditCardIcon,
   DocumentIcon
 } from "@heroicons/react/24/outline";

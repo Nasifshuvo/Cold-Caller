@@ -1,7 +1,9 @@
 "use client"
 import { useState, useEffect } from "react";
 import { LeadsData } from "@/types/leadsData";
-export default function FileUploader({leadData, setLeadData}: {leadData: LeadsData[], setLeadData: (data: LeadsData[]) => void}) {
+export default function FileUploader({setLeadData}: {
+  setLeadData: (data: LeadsData[]) => void
+}) {
     const [message, setMessage] = useState<string>("");
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [clientId, setClientId] = useState<number | null>(null);
@@ -93,17 +95,6 @@ export default function FileUploader({leadData, setLeadData}: {leadData: LeadsDa
             console.error(error);
         }
     };
-
-    const prepareLeadData = (phones: {phoneNumber: string, createdAt: string}[]) => {
-        const leadData: LeadsData[] = phones.map((phone: any) => ({
-            phoneNumber: phone.phoneNumber,
-            callId: "",
-            callStatus: "Not Initiated",
-            response: "-",
-            createdAt: phone.createdAt
-        }));
-        setLeadData(leadData);
-    }
 
     return (
         <div className="w-full max-w-xl mx-auto p-6">

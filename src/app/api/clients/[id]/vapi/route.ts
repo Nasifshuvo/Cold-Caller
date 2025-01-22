@@ -19,8 +19,6 @@ export async function PUT(
       where: { id: parseInt(id) },
       data: {
         vapiKey: body.vapiKey,
-        vapiSecret: body.vapiSecret,
-        vapiEndpoint: body.vapiEndpoint,
         vapiAssistantId: body.vapiAssistantId,
         vapiPhoneNumberId: body.vapiPhoneNumberId
       }

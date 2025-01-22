@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import * as bcrypt from 'bcryptjs';
-import { PrismaClient, Prisma } from '@prisma/client';
-type DefaultArgs = Prisma.PrismaClientOptions;
+import { PrismaClient } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -81,10 +80,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ data: result });
-  } catch (error: any) {
-    console.error('POST client error:', error?.message || 'Unknown error');
+  } catch (error) {
+    console.error('POST client error:', error);
     
-    if (error?.code === 'P2002') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
     }
 

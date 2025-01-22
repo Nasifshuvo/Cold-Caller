@@ -20,7 +20,7 @@ export default function BillingPage() {
         if (!response.ok) throw new Error('Failed to fetch transactions');
         
         const data = await response.json();
-        setTransactions(data.map((t: any) => ({
+        setTransactions(data.map((t: Transaction) => ({
           ...t,
           amount: t.amount.toString(),
           createdAt: t.createdAt.toString()

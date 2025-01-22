@@ -18,6 +18,7 @@ export async function setAppointment(appointmentData: Omit<Appointment, 'created
       const fileContent = await fs.readFile(filePath, 'utf8');
       appointments = JSON.parse(fileContent);
     } catch (error) {
+      console.error('Error reading appointments file:', error);
       // File doesn't exist or is empty, start with empty array
       appointments = [];
     }

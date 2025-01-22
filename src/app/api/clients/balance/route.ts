@@ -16,6 +16,7 @@ export async function GET() {
 
     return NextResponse.json({ balance: user?.client?.balance || '0' });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: 'Failed to fetch balance' }, { status: 500 });
   }
 }

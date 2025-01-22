@@ -1,16 +1,13 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function SignIn() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
-
-  const callbackUrl = useSearchParams()?.get('callbackUrl') || '/dashboard/client';
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,6 +41,7 @@ export default function SignIn() {
         router.push('/dashboard/client');
       }
     } catch (error) {
+      console.error(error);
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);

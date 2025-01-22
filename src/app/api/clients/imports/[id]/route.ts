@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,9 +12,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await context.params;
+
     const importDetails = await prisma.leadImport.findUnique({
       where: {
-        id: parseInt(params.id)
+        id: parseInt(id)
       },
       include: {
         leads: {
@@ -31,6 +33,7 @@ export async function GET(
 
     return NextResponse.json(importDetails);
   } catch (error) {
+    console.error(error);
     return NextResponse.json(
       { error: 'Failed to fetch import details' },
       { status: 500 }

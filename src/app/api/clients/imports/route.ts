@@ -32,6 +32,7 @@ export async function GET() {
 
     return NextResponse.json(imports);
   } catch (error) {
+    console.error(error);
     return NextResponse.json(
       { error: 'Failed to fetch imports' },
       { status: 500 }

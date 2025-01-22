@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -8,15 +8,16 @@ export async function GET() {
     
     if (!session) {
       return NextResponse.json(
-        { error: "Not authenticated" },
+        { error: "Not authenticated" }, 
         { status: 401 }
       );
     }
 
     return NextResponse.json({ role: session.user.role });
   } catch (error) {
+    console.error(error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error" }, 
       { status: 500 }
     );
   }
