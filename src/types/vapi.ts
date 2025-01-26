@@ -99,6 +99,7 @@ export interface VapiToolCallPayload {
         }>;
       };
     };
-    tool_calls: ToolCall[];
+    tool_calls?: ToolCall[];
+    toolCalls?: ToolCall[];
   };
 } 

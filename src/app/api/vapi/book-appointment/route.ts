@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     // Extract appointment details from the tool call
     if(body.message.type === 'tool-calls') {
       console.log('Tool call found');
-      const toolCall = body.message?.tool_calls?.[0];
+      const toolCall = body.message?.tool_calls?.[0] ?? body.message?.toolCalls?.[0];
       console.log('Tool call', toolCall);
       console.log('Tool call type', toolCall?.type);
       console.log('Tool call name', toolCall?.function?.name);
