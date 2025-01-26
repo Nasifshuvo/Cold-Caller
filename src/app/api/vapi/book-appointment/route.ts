@@ -16,28 +16,45 @@ export async function POST(request: Request) {
     });
 
     // Extract appointment details from the tool call
-    if(body.message.type === 'tool_call') {
-      const toolCall = body.message.toolCalls[0];
+    if(body.message.type === 'tool-calls') {
+      console.log('Tool call found');
+      const toolCall = body.message?.tool_calls?.[0];
+      console.log('Tool call', toolCall);
+      console.log('Tool call type', toolCall?.type);
+      console.log('Tool call name', toolCall?.function?.name);
       if (toolCall?.type !== 'function' || toolCall.function.name !== 'bookAppointment') {
         throw new Error('Invalid tool call data');
       }
 
       try {
+        console.log('Tool call arguments', toolCall.function.arguments);
         const args = toolCall.function.arguments as BookingAppointmentArgs;
-        // Create the appointment
-        const appointment = await prisma.appointment.create({
-          data: {
-            name: args.name,
-            email: args.email,
-            date: args.date,
-            time: args.time,
-            callId: body.message.call.id,
-            metadata: {
-              originalRequest: JSON.stringify(body),
-              toolCallId: toolCall.id
-            }
+        // Validate input data
+        if (!args.date || !args.name || !args.time || !args.email) {
+          console.error('Missing required fields:', { args });
+          throw new Error('Missing required appointment fields');
+        }
+
+        // Log the exact structure being passed to Prisma
+        const appointmentData = {
+          name: args.name,
+          email: args.email,
+          date: args.date,
+          time: args.time,
+          vapiCallId: body.message.call.id,
+          metadata: {
+            // originalRequest: JSON.stringify(body),
+            toolCallId: toolCall.id
           }
+        };
+        
+        console.log('Appointment data being passed to Prisma:', JSON.stringify(appointmentData, null, 2));
+
+        const appointment = await prisma.appointment.create({
+          data: appointmentData
         });
+        
+        console.log('Appointment created successfully:', appointment);
 
         // Log successful appointment creation
         await prisma.log.create({
@@ -52,19 +69,31 @@ export async function POST(request: Request) {
             }
           }
         });
-      } catch (appointmentError) {
-        // Log appointment creation error
-        await prisma.log.create({
-          data: {
-            event: 'appointment_creation_failed',
-            description: JSON.stringify({
-              error: appointmentError instanceof Error ? appointmentError.message : 'Unknown error',
-              callId: body.message.call.id
-            })
-          }
+
+        // Return response in Vapi's expected format with detailed message
+        return NextResponse.json({
+          results: [{
+            toolCallId: body.message.call.id,
+            result: `Appointment successfully booked for ${args.name} on ${args.date} at ${args.time}.`
+          }]
         });
-        throw appointmentError;
+      } catch (error) {
+        console.error('Detailed error information:', {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            // @ts-ignore
+            code: error.code
+          } : error,
+          inputData: toolCall.function.arguments,
+          callId: body.message.call.id,
+          toolCallId: toolCall?.id
+        });
+        throw error;
       }
+    }else{
+      console.log('No tool call found');
     }
 
     // Return response in Vapi's expected format
