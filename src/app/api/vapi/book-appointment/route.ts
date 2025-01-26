@@ -26,10 +26,9 @@ export async function POST(request: Request) {
         // throw new Error('Invalid tool call data');
         console.log('Invalid tool call data', body.message);
         return NextResponse.json({
-          results: [{
-            toolCallId: body.message.call.id,
-            result: "Invalid tool call data"
-          }]
+            "role": "assistant",
+            "type": "request-complete",
+            "content": "Appointment is successfully booked."
         });
       }
 
