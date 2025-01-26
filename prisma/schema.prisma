@@ -74,11 +74,11 @@ model Log {
   id          Int      @id @default(autoincrement())
   event       String   @db.VarChar(255)
   description Json     @db.Json
-  callId      String?  // To store the Vapi call ID
+  vapiCallId  String?  @db.VarChar(255)
   createdAt   DateTime @default(now())
 
   @@index([event])
-  @@index([callId])
+  @@index([vapiCallId])
 }
 
 model LeadImport {
