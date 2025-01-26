@@ -71,11 +71,16 @@ export async function POST(request: Request) {
         });
 
         // Return response in Vapi's expected format with detailed message
+        // return NextResponse.json({
+        //   results: [{
+        //     toolCallId: body.message.tool_calls[0].id,
+        //     result: `Appointment is successfully booked.`
+        //   }]
+        // });
         return NextResponse.json({
-          results: [{
-            toolCallId: body.message.call.id,
-            result: `Appointment successfully booked for ${args.name} on ${args.date} at ${args.time}.`
-          }]
+            "role": "assistant",
+            "type": "request-complete",
+            "content": "Appointment is successfully booked."
         });
       } catch (error) {
         console.error('Detailed error information:', {
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
     // Return response in Vapi's expected format
     return NextResponse.json({
       results: [{
-        toolCallId: body.message.call.id,
+        toolCallId: body.message.tool_calls[0].id,
         result: "Appointment request logged successfully"
       }]
     });
