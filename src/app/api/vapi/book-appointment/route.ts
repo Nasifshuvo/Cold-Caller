@@ -23,7 +23,14 @@ export async function POST(request: Request) {
       console.log('Tool call type', toolCall?.type);
       console.log('Tool call name', toolCall?.function?.name);
       if (toolCall?.type !== 'function' || toolCall.function.name !== 'bookAppointment') {
-        throw new Error('Invalid tool call data');
+        // throw new Error('Invalid tool call data');
+        console.log('Invalid tool call data', body.message);
+        return NextResponse.json({
+          results: [{
+            toolCallId: body.message.call.id,
+            result: "Invalid tool call data"
+          }]
+        });
       }
 
       try {
