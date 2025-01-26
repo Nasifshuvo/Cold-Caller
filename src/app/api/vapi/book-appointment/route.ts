@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     // Return response in Vapi's expected format
     return NextResponse.json({
       results: [{
-        toolCallId: body.message.tool_calls[0].id,
+        toolCallId: body.message.call.id,
         result: "Appointment request logged successfully"
       }]
     });
