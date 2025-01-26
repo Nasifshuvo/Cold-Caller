@@ -29,7 +29,7 @@ export interface ToolCall {
   type: string;
   function: {
     name: string;
-    arguments: BookingAppointmentArgs | Record<string, any>;
+    arguments: BookingAppointmentArgs | Record<string, string | number | boolean>;
   }
 }
 
