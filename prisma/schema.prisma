@@ -74,9 +74,11 @@ model Log {
   id          Int      @id @default(autoincrement())
   event       String   @db.VarChar(255)
   description Json     @db.Json
+  callId      String?  // To store the Vapi call ID
   createdAt   DateTime @default(now())
 
   @@index([event])
+  @@index([callId])
 }
 
 model LeadImport {
@@ -125,4 +127,21 @@ model Call {
 
   @@index([leadId])
   @@index([clientId])
+}
+
+model Appointment {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String
+  date        DateTime
+  time        String
+  status      String   @default("SCHEDULED")
+  callId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  metadata    Json?    @db.Json
+
+  @@index([email])
+  @@index([date])
+  @@index([status])
 } 
