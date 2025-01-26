@@ -83,7 +83,7 @@ export async function POST(request: Request) {
             message: error.message,
             stack: error.stack,
             name: error.name,
-            // @ts-ignore
+            // @ts-expect-error - Prisma error type may include code property
             code: error.code
           } : error,
           inputData: toolCall.function.arguments,
