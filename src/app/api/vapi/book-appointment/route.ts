@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       data: {
         event: 'vapi_full_log',
         description: JSON.stringify(body),
-        callId: body.message.call.id
+        vapiCallId: body.message.call.id
       }
     });
 
