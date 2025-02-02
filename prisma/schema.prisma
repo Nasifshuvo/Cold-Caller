@@ -115,18 +115,39 @@ model Lead {
 }
 
 model Call {
-  id          Int       @id @default(autoincrement())
-  leadId      Int
-  lead        Lead      @relation(fields: [leadId], references: [id])
-  clientId    Int
-  client      Client    @relation(fields: [clientId], references: [id])
-  callStatus  String    @default("Not Initiated")
-  response    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                Int       @id @default(autoincrement())
+  leadId            Int?
+  lead              Lead?     @relation(fields: [leadId], references: [id])
+  clientId          Int
+  client            Client    @relation(fields: [clientId], references: [id])
+  callStatus        String    @default("Not Initiated")
+  response          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Vapi fields
+  vapiCallId        String?   @unique
+  assistantId       String?
+  type              String?
+  startedAt         DateTime?
+  endedAt           DateTime?
+  transcript        String?   @db.Text
+  recordingUrl      String?   @db.Text
+  stereoRecordingUrl String?  @db.Text
+  summary           String?   @db.Text
+  cost              Decimal?  @db.Decimal(10, 4)
+  final_cost        Decimal?  @db.Decimal(10, 4)
+  customerNumber    String?
+  endedReason       String?
+  webCallUrl        String?   @db.Text
+  
+  costBreakdown     Json?     @db.Json
+  analysis          Json?     @db.Json
+  messages          Json?     @db.Json
 
   @@index([leadId])
   @@index([clientId])
+  @@index([vapiCallId])
 }
 
 model Appointment {
@@ -144,4 +165,19 @@ model Appointment {
   @@index([email])
   @@index([date])
   @@index([status])
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       Json     @db.Json
+  category    String   @db.VarChar(50)
+  label       String   @db.VarChar(255)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
 } 

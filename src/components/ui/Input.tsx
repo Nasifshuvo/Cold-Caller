@@ -1,9 +1,10 @@
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  helperText?: string;
 }
 
-export function Input({ label, error, ...props }: InputProps) {
+export function Input({ label, error, helperText, ...props }: InputProps) {
   return (
     <div className="space-y-1">
       <label className="block text-sm font-medium text-gray-700">
@@ -20,6 +21,9 @@ export function Input({ label, error, ...props }: InputProps) {
       />
       {error && (
         <p className="text-sm text-red-500">{error}</p>
+      )}
+      {helperText && (
+        <p className="text-sm text-gray-500">{helperText}</p>
       )}
     </div>
   );

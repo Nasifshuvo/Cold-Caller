@@ -9,25 +9,42 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    console.log("The session", session);
+    console.log("The user ID", session.user.id);
 
-    const client = await prisma.client.findFirst({
+    // Log the query we're about to make
+    console.log("Attempting to find client with query:", {
       where: {
-        user: {
-          email: session.user.email
-        }
-      },
-      select: {
-        id: true
+        userId: session.user.id
       }
     });
 
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    }
+    try {
+      const client = await prisma.client.findFirst({
+        where: {
+          userId: Number(session.user.id)
+        }
+      });
+      console.log("Database response:", client);
 
-    return NextResponse.json(client);
+      if (!client) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      }
+      return NextResponse.json(client);
+    } catch (dbError) {
+      console.error("Database error details:", {
+        error: dbError,
+        errorMessage: dbError instanceof Error ? dbError.message : 'Unknown error',
+        query: {
+          where: {
+            userId: session.user.id
+          }
+        }
+      });
+      throw dbError;
+    }
   } catch (error) {
-    console.error(error);
+    console.error("Full error object:", error);
     return NextResponse.json({ error: 'Failed to fetch client' }, { status: 500 });
   }
 } 

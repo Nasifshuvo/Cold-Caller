@@ -1,6 +1,8 @@
 "use client"
 import { useState, useEffect } from "react";
 import { LeadsData } from "@/types/leadsData";
+import axios from "axios";
+
 export default function FileUploader({setLeadData}: {
   setLeadData: (data: LeadsData[]) => void
 }) {
@@ -10,8 +12,8 @@ export default function FileUploader({setLeadData}: {
 
     useEffect(() => {
         const fetchClientId = async () => {
-            const response = await fetch('/api/clients/me');
-            const data = await response.json();
+            const response = await axios.get('/api/clients/me');
+            const data = response.data;
             setClientId(data.id);
         };
 
