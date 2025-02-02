@@ -1,0 +1,245 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getVapiConfig } from '@/lib/vapi';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { syncVapiCalls } from '@/lib/vapi/sync-calls';
+import { Call } from '@/lib/vapi/types';
+import { useSession } from 'next-auth/react';
+import { Tab } from '@headlessui/react';
+
+const AudioPlayer = ({ url, onClose }: { url: string; onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-4 rounded-lg">
+        <audio controls autoPlay>
+          <source src={url} type="audio/wav" />
+          Your browser does not support the audio element.
+        </audio>
+        <button 
+          onClick={onClose}
+          className="mt-4 w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const DetailsModal = ({ call, onClose }: { call: any; onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-3/4 h-[80vh] flex flex-col max-w-4xl">
+        {/* Fixed Header */}
+        <Tab.Group className="flex flex-col h-full">
+          <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1 m-4">
+            <Tab className={({ selected }) =>
+              `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
+              ${selected ? 'bg-white text-blue-700 shadow' : 'text-blue-500 hover:bg-white/[0.12]'}`
+            }>
+              Summary
+            </Tab>
+            <Tab className={({ selected }) =>
+              `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
+              ${selected ? 'bg-white text-blue-700 shadow' : 'text-blue-500 hover:bg-white/[0.12]'}`
+            }>
+              Transcript
+            </Tab>
+            <Tab className={({ selected }) =>
+              `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
+              ${selected ? 'bg-white text-blue-700 shadow' : 'text-blue-500 hover:bg-white/[0.12]'}`
+            }>
+              Recording
+            </Tab>
+          </Tab.List>
+
+          {/* Scrollable Content */}
+          <Tab.Panels className="flex-1 overflow-auto px-4">
+            <Tab.Panel className="h-full">
+              <div className="max-w-full break-words">
+                <p className="text-gray-700">{call.summary || 'No summary available'}</p>
+              </div>
+            </Tab.Panel>
+            <Tab.Panel className="h-full">
+              <div className="max-w-full break-words">
+                <pre className="whitespace-pre-wrap text-gray-700">{call.transcript || 'No transcript available'}</pre>
+              </div>
+            </Tab.Panel>
+            <Tab.Panel className="h-full">
+              <audio controls className="w-full">
+                <source src={call.recordingUrl} type="audio/wav" />
+                Your browser does not support the audio element.
+              </audio>
+            </Tab.Panel>
+          </Tab.Panels>
+        </Tab.Group>
+
+        {/* Fixed Footer */}
+        <div className="p-4 border-t">
+          <button 
+            onClick={onClose}
+            className="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function CallsPage() {
+  const [calls, setCalls] = useState<Call[]>([]);
+  const { data: session } = useSession();
+  const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
+  const [selectedCall, setSelectedCall] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function fetchAndSyncCalls() {
+      try {
+        // 1. Configure Vapi if needed
+        const vapiConfig = getVapiConfig();
+        console.log('Initial Vapi state:', vapiConfig.isInitialized());
+
+        if (!vapiConfig.isInitialized() && session?.user?.id) {
+          const response = await fetch('/api/clients/me');
+          const client = await response.json();
+          console.log('Client data:', client);
+          
+          if (client?.vapiKey && client.vapiAssistantId) {
+            vapiConfig.init({
+              apiKey: client.vapiKey,
+              assistantId: client.vapiAssistantId,
+            });
+            console.log('After init:', vapiConfig.isInitialized());
+          }
+        }
+
+        // 2. Fetch calls from Vapi API
+        const vapiCalls = await vapiConfig.listCalls();
+        console.log('Vapi calls from API:', vapiCalls);
+
+        // 3. Sync calls via API endpoint
+        await fetch('/api/clients/vapi/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(vapiCalls),
+        });
+
+        // 4. Fetch calls from our database
+        const dbResponse = await fetch('/api/clients/vapi/calls');
+        const dbCalls = await dbResponse.json();
+        
+        // 5. Update UI
+        setCalls(dbCalls);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    if (session?.user?.id) {
+      fetchAndSyncCalls();
+    }
+  }, [session]);
+
+  function formatDuration(startedAt: string, endedAt: string) {
+    const start = new Date(startedAt);
+    const end = new Date(endedAt);
+    const durationMs = end.getTime() - start.getTime();
+    const seconds = Math.floor(durationMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  function formatDateTime(dateString: string) {
+    return new Date(dateString).toLocaleString();
+  }
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-8">
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-base font-semibold leading-6 text-gray-900">Calls</h1>
+          <p className="mt-2 text-sm text-gray-700">A list of all your Vapi calls</p>
+        </div>
+      </div>
+      <div className="mt-8 flow-root">
+        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead>
+                <tr>
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
+                    Type
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Started At
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Duration
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Status
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Cost
+                  </th>
+                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {calls.map((call) => (
+                  <tr key={call.id}>
+                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
+                      {call.type}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {formatDateTime(call.startedAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {formatDuration(call.startedAt, call.endedAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {call.status}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      ${call.cost}
+                    </td>
+                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                      <button 
+                        onClick={() => setSelectedCall(call)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {selectedAudio && (
+        <AudioPlayer 
+          url={selectedAudio} 
+          onClose={() => setSelectedAudio(null)} 
+        />
+      )}
+      {selectedCall && (
+        <DetailsModal 
+          call={selectedCall} 
+          onClose={() => setSelectedCall(null)} 
+        />
+      )}
+    </div>
+  );
+} 

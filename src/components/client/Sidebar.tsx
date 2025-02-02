@@ -5,7 +5,9 @@ import {
   HomeIcon, 
   UserIcon,
   CreditCardIcon,
-  DocumentIcon
+  DocumentIcon,
+  PhoneIcon,
+  Cog6ToothIcon
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -14,8 +16,10 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard/client', icon: HomeIcon },
     { name: 'Profile', href: '/dashboard/client/profile', icon: UserIcon },
+    { name: 'Calls', href: '/dashboard/client/calls', icon: PhoneIcon },
     { name: 'Billing', href: '/dashboard/client/billing', icon: CreditCardIcon },
     { name: 'Imports', href: '/dashboard/client/imports', icon: DocumentIcon },
+    { name: 'Settings', href: '/dashboard/admin/settings', icon: Cog6ToothIcon },
   ];
 
   return (

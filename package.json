@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
+    "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.2.1",
+    "@tanstack/react-table": "^8.20.6",
+    "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "formidable": "^3.5.2",

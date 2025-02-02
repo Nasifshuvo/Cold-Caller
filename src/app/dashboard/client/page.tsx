@@ -23,9 +23,15 @@ export default function Dashboard() {
       console.error('Error fetching balance:', error);
     }
   };
+  const fetchVapiConfig = async () => {
+    const response = await fetch('/api/clients/me');
+    const data = await response.json();
+    console.log("My Details", data);
+  };
 
   useEffect(() => {
     fetchBalance();
+    fetchVapiConfig();
   }, []);
 
   // Helper function to check if any calls are not initiated
@@ -64,8 +70,8 @@ export default function Dashboard() {
           };
           setLeadData([...updatedLeadData]);
 
-          setCallMessages(`Waiting 2 minutes to finish the call...`);
-          await new Promise(resolve => setTimeout(resolve, 2 * 60 * 1000));
+          // setCallMessages(`Waiting 2 minutes to finish the call...`);
+          // await new Promise(resolve => setTimeout(resolve, 2 * 60 * 1000));
           
           const getCallResponse = await getCall(callResponse.id);
           updatedLeadData[index] = {
