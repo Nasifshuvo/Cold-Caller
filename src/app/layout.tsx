@@ -76,13 +76,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isConfigured = await initializeVapiConfig();
+  await initializeVapiConfig();
   
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* {!isConfigured && (
           <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
             <p className="font-bold">Vapi Configuration Incomplete</p>

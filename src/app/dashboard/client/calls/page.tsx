@@ -2,13 +2,50 @@
 
 import { useState, useEffect } from 'react';
 import { getVapiConfig } from '@/lib/vapi';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
-import { syncVapiCalls } from '@/lib/vapi/sync-calls';
-import { Call } from '@/lib/vapi/types';
 import { useSession } from 'next-auth/react';
 import { Tab } from '@headlessui/react';
+import { getCallRateMultiplier } from '@/utils/getSettings';
+
+// These are JSON fields that can have varying structures
+type Call = {
+  status: string;
+  id: number;
+  leadId?: number;
+  clientId: number;
+  callStatus: string;
+  response?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analysis?: any;
+  assistantId?: string;
+  cost?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  costBreakdown?: any;
+  customerNumber?: string;
+  endedAt?: Date;
+  endedReason?: string;
+  final_cost?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messages?: any;
+  recordingUrl?: string;
+  startedAt?: Date;
+  stereoRecordingUrl?: string;
+  summary?: string;
+  transcript?: string;
+  type?: string;
+  vapiCallId?: string;
+  webCallUrl?: string;
+  costDeducted: boolean;
+  client: {
+    id: number;
+    name?: string;
+  };
+  lead?: {
+    id: number;
+    name?: string;
+  };
+};
 
 const AudioPlayer = ({ url, onClose }: { url: string; onClose: () => void }) => {
   return (
@@ -29,7 +66,7 @@ const AudioPlayer = ({ url, onClose }: { url: string; onClose: () => void }) => 
   );
 };
 
-const DetailsModal = ({ call, onClose }: { call: any; onClose: () => void }) => {
+const DetailsModal = ({ call, onClose }: { call: Call; onClose: () => void }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-3/4 h-[80vh] flex flex-col max-w-4xl">
@@ -95,7 +132,8 @@ export default function CallsPage() {
   const [calls, setCalls] = useState<Call[]>([]);
   const { data: session } = useSession();
   const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
-  const [selectedCall, setSelectedCall] = useState<any | null>(null);
+  const [selectedCall, setSelectedCall] = useState<Call | null>(null);
+  const [rateMultiplier, setRateMultiplier] = useState(2); // Default to 200%
 
   useEffect(() => {
     async function fetchAndSyncCalls() {
@@ -147,6 +185,14 @@ export default function CallsPage() {
     }
   }, [session]);
 
+  useEffect(() => {
+    const fetchMultiplier = async () => {
+      const multiplier = await getCallRateMultiplier();
+      setRateMultiplier(multiplier);
+    };
+    fetchMultiplier();
+  }, []);
+
   function formatDuration(startedAt: string, endedAt: string) {
     const start = new Date(startedAt);
     const end = new Date(endedAt);
@@ -167,6 +213,14 @@ export default function CallsPage() {
         <div className="sm:flex-auto">
           <h1 className="text-base font-semibold leading-6 text-gray-900">Calls</h1>
           <p className="mt-2 text-sm text-gray-700">A list of all your Vapi calls</p>
+        </div>
+        <div className="mt-4 sm:ml-16 sm:mt-0">
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-500">Total Cost</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              ${calls.reduce((sum, call) => sum + (call.cost || 0 * rateMultiplier), 0).toFixed(2)}
+            </p>
+          </div>
         </div>
       </div>
       <div className="mt-8 flow-root">
@@ -202,16 +256,16 @@ export default function CallsPage() {
                       {call.type}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {formatDateTime(call.startedAt)}
+                      {formatDateTime(call.startedAt?.toString() || '')}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {formatDuration(call.startedAt, call.endedAt)}
+                      {formatDuration(call.startedAt?.toString() || '', call.endedAt?.toString() || '')}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {call.status}
+                      {call.status || 'No Status'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      ${call.cost}
+                      ${(call.cost || 0 * rateMultiplier).toFixed(2)}
                     </td>
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                       <button 

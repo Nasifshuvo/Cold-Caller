@@ -3,14 +3,19 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-interface Setting {
+interface SettingValue {
+  multiplier: number;
+}
+
+type Setting = {
   id: number;
   key: string;
-  value: any;
+  value: SettingValue;
   category: string;
   label: string;
   description?: string;
-}
+  isSystem: boolean;
+};
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([]);

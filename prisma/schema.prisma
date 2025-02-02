@@ -7,11 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  USER
-}
-
 model Role {
   id          Int      @id @default(autoincrement())
   name        String   @unique
@@ -27,11 +22,11 @@ model User {
   name      String?
   password  String
   roleId    Int
-  role      Role     @relation(fields: [roleId], references: [id])
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   client    Client?
+  role      Role     @relation(fields: [roleId], references: [id])
 
   @@index([email])
   @@index([roleId])
@@ -43,16 +38,16 @@ model Client {
   email             String        @unique
   phone             String
   userId            Int           @unique
-  user              User          @relation(fields: [userId], references: [id])
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   active            Boolean       @default(true)
-  balance           Decimal       @default(0) @db.Decimal(10, 2)
+  balance           Decimal       @default(0.00) @db.Decimal(10, 2)
   vapiKey           String?       @unique
   vapiAssistantId   String?
   vapiPhoneNumberId String?
-  leads             Lead[]
   calls             Call[]
+  user              User          @relation(fields: [userId], references: [id])
+  leads             Lead[]
   leadImports       LeadImport[]
   transactions      Transaction[]
 
@@ -62,88 +57,91 @@ model Client {
 model Transaction {
   id        Int      @id @default(autoincrement())
   amount    Decimal  @db.Decimal(10, 2)
-  type      String   // 'CREDIT' or 'DEBIT'
+  type      String
   clientId  Int
-  client    Client   @relation(fields: [clientId], references: [id])
   createdAt DateTime @default(now())
+  reason    String   @default("Legacy Transaction")
+  reference String?
+  processed Boolean  @default(false)
+  client    Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
+  @@index([processed])
+  @@index([type])
 }
 
 model Log {
   id          Int      @id @default(autoincrement())
   event       String   @db.VarChar(255)
-  description Json     @db.Json
-  vapiCallId  String?  @db.VarChar(255)
+  description Json
   createdAt   DateTime @default(now())
+  vapiCallId  String?  @db.VarChar(255)
 
   @@index([event])
   @@index([vapiCallId])
 }
 
 model LeadImport {
-  id          Int       @id @default(autoincrement())
-  clientId    Int
-  client      Client    @relation(fields: [clientId], references: [id])
-  fileName    String
-  totalLeads  Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  leads       Lead[]
+  id         Int      @id @default(autoincrement())
+  clientId   Int
+  fileName   String
+  totalLeads Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  leads      Lead[]
+  client     Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
 }
 
 model Lead {
-  id            Int         @id @default(autoincrement())
-  clientId      Int
-  client        Client      @relation(fields: [clientId], references: [id])
-  importId      Int?
-  leadImport    LeadImport? @relation(fields: [importId], references: [id])
-  phoneNumber   String
+  id          Int         @id @default(autoincrement())
+  clientId    Int
+  importId    Int?
+  phoneNumber String
   name        String?
-  callStatus    String      @default("Not Initiated")
-  response      String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  calls         Call[]
+  callStatus  String      @default("Not Initiated")
+  response    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  calls       Call[]
+  client      Client      @relation(fields: [clientId], references: [id])
+  leadImport  LeadImport? @relation(fields: [importId], references: [id])
 
+  @@unique([clientId, phoneNumber], name: "clientId_phoneNumber")
   @@index([clientId])
   @@index([phoneNumber])
   @@index([importId])
-  @@unique([clientId, phoneNumber], name: "clientId_phoneNumber")
 }
 
 model Call {
-  id                Int       @id @default(autoincrement())
-  leadId            Int?
-  lead              Lead?     @relation(fields: [leadId], references: [id])
-  clientId          Int
-  client            Client    @relation(fields: [clientId], references: [id])
-  callStatus        String    @default("Not Initiated")
-  response          String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  // Vapi fields
-  vapiCallId        String?   @unique
-  assistantId       String?
-  type              String?
-  startedAt         DateTime?
-  endedAt           DateTime?
-  transcript        String?   @db.Text
-  recordingUrl      String?   @db.Text
-  stereoRecordingUrl String?  @db.Text
-  summary           String?   @db.Text
-  cost              Decimal?  @db.Decimal(10, 4)
-  final_cost        Decimal?  @db.Decimal(10, 4)
-  customerNumber    String?
-  endedReason       String?
-  webCallUrl        String?   @db.Text
-  
-  costBreakdown     Json?     @db.Json
-  analysis          Json?     @db.Json
-  messages          Json?     @db.Json
+  id            Int      @id @default(autoincrement())
+  leadId        Int?
+  clientId      Int
+  callStatus    String   @default("Not Initiated")
+  response      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  analysis      Json?
+  assistantId   String?
+  cost          Decimal? @db.Decimal(10, 4)
+  costBreakdown Json?
+  customerNumber String?
+  endedAt       DateTime? @db.DateTime(3)
+  endedReason   String?
+  final_cost    Decimal? @db.Decimal(10, 4)
+  messages      Json?
+  recordingUrl  String?  @db.Text
+  startedAt     DateTime? @db.DateTime(3)
+  stereoRecordingUrl String? @db.Text
+  summary       String?  @db.Text
+  transcript    String?  @db.Text
+  type          String?
+  vapiCallId    String?  @unique @db.VarChar(255)
+  webCallUrl    String?  @db.Text
+  costDeducted  Boolean  @default(false)
+  client        Client   @relation(fields: [clientId], references: [id])
+  lead          Lead?    @relation(fields: [leadId], references: [id])
 
   @@index([leadId])
   @@index([clientId])
@@ -154,13 +152,13 @@ model Appointment {
   id          Int      @id @default(autoincrement())
   name        String
   email       String
-  date        String
+  date        DateTime
   time        String
   status      String   @default("SCHEDULED")
-  vapiCallId  String?
+  callId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  metadata    Json?    @db.Json
+  metadata    Json?
 
   @@index([email])
   @@index([date])
@@ -180,4 +178,4 @@ model Setting {
 
   @@index([key])
   @@index([category])
-} 
+}

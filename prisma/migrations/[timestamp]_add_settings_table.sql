@@ -19,4 +19,8 @@ CREATE UNIQUE INDEX `Setting_key_key` ON `Setting`(`key`);
 CREATE INDEX `Setting_key_idx` ON `Setting`(`key`);
 
 -- CreateIndex
-CREATE INDEX `Setting_category_idx` ON `Setting`(`category`); 
+CREATE INDEX `Setting_category_idx` ON `Setting`(`category`);
+
+-- Insert default setting
+INSERT INTO `Setting` (`key`, `value`, `category`, `label`, `description`, `isSystem`, `createdAt`, `updatedAt`)
+VALUES ('call_rate_multiplier', '{"multiplier": 1}', 'billing', 'Call Rate Multiplier', 'Percentage multiplier applied to base call rates', true, NOW(), NOW()); 
