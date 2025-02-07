@@ -67,6 +67,30 @@ const AudioPlayer = ({ url, onClose }: { url: string; onClose: () => void }) => 
 };
 
 const DetailsModal = ({ call, onClose }: { call: Call; onClose: () => void }) => {
+  // Function to format transcript into colored blocks
+  const formatTranscript = (transcript: string) => {
+    if (!transcript) return <p>No transcript available</p>;
+    
+    return transcript.split('\n').map((line, index) => {
+      if (line.startsWith('AI:')) {
+        return (
+          <div key={index} className="mb-2">
+            <p className="text-blue-600 font-medium">{line.split('AI:')[0]}AI:</p>
+            <p className="pl-4 text-blue-800">{line.split('AI:')[1]}</p>
+          </div>
+        );
+      } else if (line.startsWith('User:')) {
+        return (
+          <div key={index} className="mb-2">
+            <p className="text-green-600 font-medium">{line.split('User:')[0]}User:</p>
+            <p className="pl-4 text-green-800">{line.split('User:')[1]}</p>
+          </div>
+        );
+      }
+      return <p key={index}>{line}</p>;
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-3/4 h-[80vh] flex flex-col max-w-4xl">
@@ -101,8 +125,8 @@ const DetailsModal = ({ call, onClose }: { call: Call; onClose: () => void }) =>
               </div>
             </Tab.Panel>
             <Tab.Panel className="h-full">
-              <div className="max-w-full break-words">
-                <pre className="whitespace-pre-wrap text-gray-700">{call.transcript || 'No transcript available'}</pre>
+              <div className="max-w-full break-words bg-gray-50 p-4 rounded-lg">
+                {formatTranscript(call.transcript || '')}
               </div>
             </Tab.Panel>
             <Tab.Panel className="h-full">
@@ -207,6 +231,11 @@ export default function CallsPage() {
     return new Date(dateString).toLocaleString();
   }
 
+  const totalCost = calls.reduce((sum, call) => {
+    const callCost = call.cost || 0;
+    return sum + (callCost * rateMultiplier);
+  }, 0);
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -218,7 +247,7 @@ export default function CallsPage() {
           <div className="text-right">
             <p className="text-sm font-medium text-gray-500">Total Cost</p>
             <p className="text-2xl font-semibold text-gray-900">
-              ${calls.reduce((sum, call) => sum + (call.cost || 0 * rateMultiplier), 0).toFixed(2)}
+              ${totalCost.toFixed(2)}
             </p>
           </div>
         </div>
@@ -265,7 +294,7 @@ export default function CallsPage() {
                       {call.status || 'No Status'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      ${(call.cost || 0 * rateMultiplier).toFixed(2)}
+                      ${((call.cost || 0) * rateMultiplier).toFixed(2)}
                     </td>
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                       <button 
