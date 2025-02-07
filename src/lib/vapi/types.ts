@@ -19,11 +19,14 @@ export interface ListCallsParams extends PaginationParams {
 }
 
 export interface CreateCallDTO {
-  // Add properties based on schema
+  assistantId: string;
+  phoneNumberId?: string;
+  type: 'outboundPhoneCall' | 'webCall';
 }
 
 export interface UpdateCallDTO {
-  // Add properties based on schema
+  status?: string;
+  endedReason?: string;
 }
 
 export interface Call {
@@ -98,33 +101,44 @@ export interface CallMessage {
 }
 
 // Assistant types
-export interface ListAssistantsParams extends PaginationParams {}
+export interface ListAssistantsParams extends PaginationParams {
+  id?: string;
+}
 
 export interface CreateAssistantDTO {
-  // Add properties based on schema
+  name: string;
+  model: string;
 }
 
 export interface UpdateAssistantDTO {
-  // Add properties based on schema
+  name?: string;
+  model?: string;
 }
 
 export interface Assistant {
-  // Add properties based on schema
+  id: string;
+  name: string;
+  model: string;
 }
 
 // Phone Number types
-export interface ListPhoneNumbersParams extends PaginationParams {}
+export interface ListPhoneNumbersParams extends PaginationParams {
+  id?: string;
+}
 
 export interface CreatePhoneNumberDTO {
-  // Add properties based on schema
+  phoneNumber: string;
+  name?: string;
 }
 
 export interface UpdatePhoneNumberDTO {
-  // Add properties based on schema
+  name?: string;
 }
 
 export interface PhoneNumber {
-  // Add properties based on schema
+  id: string;
+  phoneNumber: string;
+  name?: string;
 }
 
 export interface VapiConfig {
@@ -142,4 +156,6 @@ export interface VapiConfiguration {
   init(config: VapiConfig): void;
   isInitialized(): boolean;
   listCalls(): Promise<Call[]>;
-} 
+}
+
+// Remove unused empty interfaces/types 
