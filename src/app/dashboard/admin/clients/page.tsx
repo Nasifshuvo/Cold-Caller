@@ -199,14 +199,15 @@ export default function ClientsPage() {
             <div className="p-6 flex-shrink-0">
               <h2 className="text-xl font-bold mb-4">Add New Client</h2>
             </div>
-            
-            <div className="p-6 pt-0 overflow-y-auto flex-grow">
+
+            <form onSubmit={handleAddClient} className="space-y-4">
+            <div className="p-6 pt-0 overflow-y-auto flex-grow" style={{ height: 'calc(90vh - 200px)', overflow: 'scroll' }}>
               {error && (
-                <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
+                <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded" >
                   {error}
                 </div>
               )}
-              <form onSubmit={handleAddClient} className="space-y-4">
+              
                 <Input
                   label="Name"
                   name="name"
@@ -270,7 +271,7 @@ export default function ClientsPage() {
                     placeholder="Enter Phone Number ID"
                   />
                 </div>
-              </form>
+              
             </div>
 
             <div className="p-6 border-t flex justify-end space-x-3 flex-shrink-0">
@@ -284,10 +285,12 @@ export default function ClientsPage() {
               <Button
                 type="submit"
                 isLoading={loading}
+
               >
                 Add Client
               </Button>
             </div>
+            </form>
           </div>
         </div>
       )}
