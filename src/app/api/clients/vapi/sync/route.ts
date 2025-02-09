@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { POST as createCall, PUT as updateCall } from '../calls/route';
 
 // Helper function to create Request object
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createRequestObject(method: string, body: any) {
   return new Request('http://localhost', {  // Using localhost as base URL
     method,

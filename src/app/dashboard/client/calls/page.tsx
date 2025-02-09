@@ -158,11 +158,9 @@ export default function CallsPage() {
   const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [rateMultiplier, setRateMultiplier] = useState(2);
-  const [loading, setLoading] = useState(false);
 
   async function fetchAndSyncCalls() {
     try {
-      setLoading(true);
       const vapiConfig = getVapiConfig();
       console.log('Initial Vapi state:', vapiConfig.isInitialized());
 
@@ -202,9 +200,7 @@ export default function CallsPage() {
       setCalls(sortedCalls);
     } catch (error) {
       console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
+    } 
   }
 
   useEffect(() => {
