@@ -54,12 +54,15 @@ export default function Dashboard() {
     
     for (let index = 0; index < updatedLeadData.length; index++) {
       const lead = updatedLeadData[index];
+      console.log("Processing Lead:", lead)
       if (lead.callStatus !== 'Pending') continue;
 
       setCallMessages(`Initiating ${index + 1} of ${leadData.length} calls`);
       
       try {
+        console.log("Calling...", lead.phoneNumber)
         const callResponse = await createOutboundCall(lead.phoneNumber);
+        console.log("Call Response:", callResponse)
         if (callResponse.id) {
           updatedLeadData[index] = {
             ...lead,

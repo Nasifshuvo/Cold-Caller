@@ -37,20 +37,21 @@ export async function POST(
         throw new Error('Client not found');
       }
 
+      const transaction = await prisma.transaction.create({
+        data: {
+          amount: amount,
+          type: 'CREDIT',
+          clientId: clientId,
+          processed: true
+        },
+      });
+
       const updatedClient = await prisma.client.update({
         where: { id: clientId },
         data: {
           balance: {
             increment: amount,
           },
-        },
-      });
-
-      const transaction = await prisma.transaction.create({
-        data: {
-          amount: amount,
-          type: 'CREDIT',
-          clientId: clientId,
         },
       });
 

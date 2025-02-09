@@ -157,53 +157,57 @@ export default function CallsPage() {
   const { data: session } = useSession();
   const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
-  const [rateMultiplier, setRateMultiplier] = useState(2); // Default to 200%
+  const [rateMultiplier, setRateMultiplier] = useState(2);
+  const [loading, setLoading] = useState(false);
+
+  async function fetchAndSyncCalls() {
+    try {
+      setLoading(true);
+      const vapiConfig = getVapiConfig();
+      console.log('Initial Vapi state:', vapiConfig.isInitialized());
+
+      if (!vapiConfig.isInitialized() && session?.user?.id) {
+        const response = await fetch('/api/clients/me');
+        const client = await response.json();
+        
+        if (client?.vapiKey && client.vapiAssistantId) {
+          vapiConfig.init({
+            apiKey: client.vapiKey,
+            assistantId: client.vapiAssistantId,
+          });
+        }
+      }
+
+      // Fetch all calls
+      const vapiCalls = await vapiConfig.listCalls({
+        createdAtGt: '2024-01-01', // Optional: Set a start date if needed
+      });
+
+      await fetch('/api/clients/vapi/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vapiCalls),
+      });
+
+      const dbResponse = await fetch('/api/clients/vapi/calls');
+      const dbCalls = await dbResponse.json();
+      
+      // Sort calls in descending order by creation date (latest first)
+      const sortedCalls = dbCalls.sort((a: Call, b: Call) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setCalls(sortedCalls);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchAndSyncCalls() {
-      try {
-        // 1. Configure Vapi if needed
-        const vapiConfig = getVapiConfig();
-        console.log('Initial Vapi state:', vapiConfig.isInitialized());
-
-        if (!vapiConfig.isInitialized() && session?.user?.id) {
-          const response = await fetch('/api/clients/me');
-          const client = await response.json();
-          console.log('Client data:', client);
-          
-          if (client?.vapiKey && client.vapiAssistantId) {
-            vapiConfig.init({
-              apiKey: client.vapiKey,
-              assistantId: client.vapiAssistantId,
-            });
-            console.log('After init:', vapiConfig.isInitialized());
-          }
-        }
-
-        // 2. Fetch calls from Vapi API
-        const vapiCalls = await vapiConfig.listCalls();
-        console.log('Vapi calls from API:', vapiCalls);
-
-        // 3. Sync calls via API endpoint
-        await fetch('/api/clients/vapi/sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(vapiCalls),
-        });
-
-        // 4. Fetch calls from our database
-        const dbResponse = await fetch('/api/clients/vapi/calls');
-        const dbCalls = await dbResponse.json();
-        
-        // 5. Update UI
-        setCalls(dbCalls);
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    }
-
     if (session?.user?.id) {
       fetchAndSyncCalls();
     }
