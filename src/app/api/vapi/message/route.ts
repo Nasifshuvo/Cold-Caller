@@ -1,6 +1,5 @@
 import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server';
-import { BookingAppointmentArgs, VapiToolCallPayload } from '@/types/vapi';
 
 export async function POST(request: Request) {
   try {
