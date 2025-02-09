@@ -1,5 +1,5 @@
 import { VapiClient } from './client';
-import type { VapiConfig, VapiConfiguration as IVapiConfiguration, Call } from './types';
+import type { VapiConfig, VapiConfiguration as IVapiConfiguration, Call, ListCallsParams } from './types';
 
 class VapiConfiguration implements IVapiConfiguration {
   private static instance: VapiConfiguration;
@@ -111,7 +111,7 @@ class VapiConfiguration implements IVapiConfiguration {
     });
   }
 
-  public async listCalls(): Promise<Call[]> {
+  public async listCalls(params?: ListCallsParams): Promise<Call[]> {
     if (!this.initialized || !this.client) {
       console.error('Vapi client not initialized');
       return [];
@@ -124,7 +124,7 @@ class VapiConfiguration implements IVapiConfiguration {
         initialized: this.initialized
       });
       
-      const calls = await this.client.listCalls();
+      const calls = await this.client.listCalls(params);
       console.log('Raw Vapi response:', calls);
       return calls;
     } catch (error) {

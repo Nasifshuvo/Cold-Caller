@@ -195,94 +195,99 @@ export default function ClientsPage() {
       {/* Add Client Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Client</h2>
-            {error && (
-              <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleAddClient} className="space-y-4">
-              <Input
-                label="Name"
-                name="name"
-                type="text"
-                required
-                placeholder="Enter client name"
-              />
-              
-              <Input
-                label="Email"
-                name="email"
-                type="email"
-                required
-                placeholder="Enter client email"
-              />
-              
-              <Input
-                label="Phone"
-                name="phone"
-                type="tel"
-                required
-                placeholder="Enter phone number"
-              />
-              
-              <Input
-                label="Password"
-                name="password"
-                type="password"
-                required
-                minLength={6}
-                placeholder="Enter password"
-              />
-
-              <Input
-                label="Initial Balance"
-                name="balance"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-              />
-
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-700">VAPI Settings (Optional)</h3>
+          <div className="bg-white rounded-lg w-full max-w-md mx-4 my-6 max-h-[90vh] flex flex-col">
+            <div className="p-6 flex-shrink-0">
+              <h2 className="text-xl font-bold mb-4">Add New Client</h2>
+            </div>
+            
+            <div className="p-6 pt-0 overflow-y-auto flex-grow">
+              {error && (
+                <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {error}
+                </div>
+              )}
+              <form onSubmit={handleAddClient} className="space-y-4">
                 <Input
-                  label="VAPI Key"
-                  name="vapiKey"
+                  label="Name"
+                  name="name"
                   type="text"
-                  placeholder="Enter VAPI key"
+                  required
+                  placeholder="Enter client name"
                 />
+                
                 <Input
-                  label="Assistant ID"
-                  name="assistantId"
-                  type="text"
-                  placeholder="Enter Assistant ID"
+                  label="Phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  placeholder="Enter phone number"
                 />
-                <Input
-                  label="Phone Number ID"
-                  name="phoneId"
-                  type="text"
-                  placeholder="Enter Phone Number ID"
-                />
-              </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  variant="secondary"
-                  onClick={() => setIsModalOpen(false)}
-                  type="button"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  isLoading={loading}
-                >
-                  Add Client
-                </Button>
-              </div>
-            </form>
+                <Input
+                  label="Email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="Enter client email"
+                />
+                
+                <Input
+                  label="Password"
+                  name="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="Enter password"
+                />
+
+                <Input
+                  label="Initial Balance"
+                  name="balance"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                />
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-700">VAPI Settings (Optional)</h3>
+                  <Input
+                    label="VAPI Key"
+                    name="vapiKey"
+                    type="text"
+                    placeholder="Enter VAPI key"
+                  />
+                  <Input
+                    label="Assistant ID"
+                    name="assistantId"
+                    type="text"
+                    placeholder="Enter Assistant ID"
+                  />
+                  <Input
+                    label="Phone Number ID"
+                    name="phoneId"
+                    type="text"
+                    placeholder="Enter Phone Number ID"
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div className="p-6 border-t flex justify-end space-x-3 flex-shrink-0">
+              <Button
+                variant="secondary"
+                onClick={() => setIsModalOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                isLoading={loading}
+              >
+                Add Client
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -96,7 +96,7 @@ export default function SettingsPage() {
                 name="callRateMultiplier"
                 type="number"
                 step="0.01"
-                min="0"
+                min="1"
                 defaultValue={(callRateMultiplier * 100).toFixed(2)}
                 helperText="This percentage will be applied to the base call rate"
               />

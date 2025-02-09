@@ -1,59 +1,75 @@
 import { PrismaClient } from '@prisma/client';
-import { hash } from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create roles
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'ADMIN' },
-    update: {},
-    create: {
-      name: 'ADMIN',
-      description: 'Administrator'
-    }
-  });
+  try {
+    // 1. Create Roles
+    console.log('Creating roles...');
+    const adminRole = await prisma.role.upsert({
+      where: { name: 'ADMIN' },
+      update: {},
+      create: {
+        name: 'ADMIN',
+        description: 'Administrator'
+      }
+    });
 
-  const clientRole = await prisma.role.upsert({
-    where: { name: 'CLIENT' },
-    update: {},
-    create: {
-      name: 'CLIENT',
-      description: 'Client User'
-    }
-  });
+    const clientRole = await prisma.role.upsert({
+      where: { name: 'CLIENT' },
+      update: {},
+      create: {
+        name: 'CLIENT',
+        description: 'Client User'
+      }
+    });
 
-  // Create admin user if doesn't exist
-  await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      name: 'Admin User',
-      password: '$2b$10$YlNxZ0vNE0N6njBA4c3lu.BSvjD6tC7pN9f7D7xQkATDown27kqTW',
-      roleId: adminRole.id,
-      active: true
-    }
-  });
+    console.log('Roles created:', { adminRole, clientRole });
 
-  // Create default settings if doesn't exist
-  await prisma.setting.upsert({
-    where: { key: 'call_rate_multiplier' },
-    update: {},
-    create: {
-      key: 'call_rate_multiplier',
-      value: { multiplier: 0.1 },
-      category: 'billing',
-      label: 'Call Rate Multiplier',
-      description: 'Percentage multiplier applied to base call rates',
-      isSystem: true
-    }
-  });
+    // 2. Create Admin User
+    console.log('Creating admin user...');
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    
+    const adminUser = await prisma.user.upsert({
+      where: { email: 'admin@example.com' },
+      update: {},
+      create: {
+        email: 'admin@example.com',
+        name: 'Admin User',
+        password: hashedPassword,
+        roleId: adminRole.id,
+        active: true
+      }
+    });
+
+    console.log('Admin user created:', adminUser);
+
+    // 3. Create Call Rate Multiplier Setting
+    // This matches your settings page implementation
+    await prisma.setting.upsert({
+      where: { key: 'call_rate_multiplier' },
+      update: {},
+      create: {
+        key: 'call_rate_multiplier',
+        value: { multiplier: 1.0 }, // 100% - no markup by default
+        category: 'billing',
+        label: 'Call Rate Multiplier',
+        description: 'Percentage multiplier applied to base call rates',
+        isSystem: true
+      }
+    });
+
+    console.log('Seeding completed successfully');
+  } catch (error) {
+    console.error('Error during seeding:', error);
+    throw error;
+  }
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('Failed to seed database:', e);
     process.exit(1);
   })
   .finally(async () => {

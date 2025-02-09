@@ -129,7 +129,7 @@ model Call {
   customerNumber String?
   endedAt       DateTime? @db.DateTime(3)
   endedReason   String?
-  final_cost    Decimal? @db.Decimal(10, 4)
+  final_cost    Decimal? @default(dbgenerated("(cost * 2)")) @db.Decimal(10, 4)
   messages      Json?
   recordingUrl  String?  @db.Text
   startedAt     DateTime? @db.DateTime(3)
