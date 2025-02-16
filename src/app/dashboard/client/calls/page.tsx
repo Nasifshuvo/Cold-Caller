@@ -207,7 +207,7 @@ export default function CallsPage() {
     if (session?.user?.id) {
       fetchAndSyncCalls();
     }
-  }, [session]);
+  }, [session, fetchAndSyncCalls]);
 
   useEffect(() => {
     const fetchMultiplier = async () => {

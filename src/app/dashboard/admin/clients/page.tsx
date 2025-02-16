@@ -179,12 +179,12 @@ export default function ClientsPage() {
                   >
                     Details
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="secondary"
                     onClick={() => handleConfigureVAPI(client.id)}
                   >
                     Configure VAPI
-                  </Button>
+                  </Button> */}
                 </td>
               </tr>
             ))}

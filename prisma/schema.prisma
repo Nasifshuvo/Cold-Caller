@@ -45,6 +45,7 @@ model Client {
   vapiKey           String?       @unique
   vapiAssistantId   String?
   vapiPhoneNumberId String?
+  estimatedCallCost Decimal?      @default(0.00) @db.Decimal(10, 2)
   calls             Call[]
   user              User          @relation(fields: [userId], references: [id])
   leads             Lead[]
