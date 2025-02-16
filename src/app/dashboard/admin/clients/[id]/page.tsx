@@ -4,23 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { use } from 'react';
-
-interface Client {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  balance: string;
-  vapiKey?: string;
-  vapiAssistantId?: string;
-  vapiPhoneNumberId?: string;
-  active: boolean;
-  createdAt: string;
-  user: {
-    email: string;
-    active: boolean;
-  };
-}
+import { Client } from '@/types/client';
 
 interface Transaction {
   id: number;
@@ -41,6 +25,8 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAddBalanceModalOpen, setIsAddBalanceModalOpen] = useState(false);
   const [isVapiModalOpen, setIsVapiModalOpen] = useState(false);
+  const [isEditingCost, setIsEditingCost] = useState(false);
+  const [estimatedCost, setEstimatedCost] = useState<string>('');
 
   const fetchClientDetails = useCallback(async () => {
     try {
@@ -199,6 +185,25 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleUpdateCost = async () => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}/estimated-cost`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          estimatedCallCost: parseFloat(estimatedCost) 
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update cost');
+      
+      await fetchClientDetails();
+      setIsEditingCost(false);
+    } catch (error) {
+      console.error('Failed to update estimated cost:', error);
+    }
+  };
+
   if (!client) return <div>Loading...</div>;
 
   return (
@@ -323,6 +328,55 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
           </div>
         ) : (
           <p className="text-gray-500">VAPI not configured</p>
+        )}
+      </div>
+
+      {/* Call Cost Section */}
+      <div className="bg-white shadow rounded-lg p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Call Settings</h2>
+          <Button onClick={() => setIsEditingCost(!isEditingCost)}>
+            {isEditingCost ? 'Cancel' : 'Edit'}
+          </Button>
+        </div>
+        
+        {isEditingCost ? (
+          <div className="space-y-4">
+            <Input
+              label="Estimated Call Cost"
+              name="estimatedCost"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              placeholder="0.00"
+              value={estimatedCost}
+              onChange={(e) => setEstimatedCost(e.target.value)}
+            />
+            <div className="flex justify-end space-x-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsEditingCost(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleUpdateCost}
+                isLoading={loading}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Estimated Call Cost</h3>
+              <p className="mt-1">${Number(client.estimatedCallCost).toFixed(2)}</p>
+            </div>
+          </div>
         )}
       </div>
 

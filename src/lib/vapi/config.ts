@@ -132,9 +132,86 @@ class VapiConfiguration implements IVapiConfiguration {
       return [];
     }
   }
+
+  public async getCall(id: string): Promise<Call> {
+    if (!this.initialized || !this.client) {
+      throw new Error('Vapi configuration not initialized');
+    }
+
+    try {
+      const response = await fetch(`https://api.vapi.ai/call/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.json();
+    } catch (error) {
+      console.error(`Failed to fetch call ${id}:`, error);
+      throw error;
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized) {
+      try {
+        const response = await fetch('/api/clients/me');
+        const client = await response.json();
+        
+        if (client?.vapiKey && client.vapiAssistantId) {
+          this.init({
+            apiKey: client.vapiKey,
+            assistantId: client.vapiAssistantId,
+            phoneNumberId: client.vapiPhoneNumberId,
+          });
+        } else {
+          throw new Error('No valid Vapi configuration found');
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error('Failed to initialize Vapi configuration: ' + errorMessage);
+      }
+    }
+  }
+
+  public async createCall(customerPhoneNumber: string): Promise<Call> {
+    await this.ensureInitialized();
+    if (!this.initialized || !this.client) {
+      throw new Error('Vapi configuration not initialized');
+    }
+
+    const phoneNumber = customerPhoneNumber.startsWith('+') 
+      ? customerPhoneNumber 
+      : `+${customerPhoneNumber}`;
+
+    try {
+      const response = await fetch("https://api.vapi.ai/call", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: "US Foreclosure Solution",
+          assistantId: this.getAssistantId(),
+          phoneNumberId: this.getPhoneNumberId(),
+          customer: {
+            number: phoneNumber
+          },
+          assistant: {},
+          assistantOverrides: {}
+        }),
+      });
+
+      return response.json();
+    } catch (error: unknown) {
+      console.error('Failed to create outbound call:', error);
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+  }
 }
 
-// Create a helper function for easier access
+// Export the singleton getter
 export const getVapiConfig = () => VapiConfiguration.getInstance();
 
 // Export the types

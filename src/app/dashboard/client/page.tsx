@@ -3,8 +3,7 @@ import FileUploader from "./components/FileUploader";
 import { LeadsData } from "@/types/leadsData";
 import { useState, useEffect } from "react";
 import LeadsTable from "./components/LeadsTable";
-import { createOutboundCall } from "@/utils/createOutboundCall";
-import { getCall } from "@/utils/getCall";
+import { createOutboundCall } from "@/lib/vapi/createOutboundCall";
 
 export default function Dashboard() {
   const [leadData, setLeadData] = useState<LeadsData[]>([]);
@@ -23,15 +22,15 @@ export default function Dashboard() {
       console.error('Error fetching balance:', error);
     }
   };
-  const fetchVapiConfig = async () => {
-    const response = await fetch('/api/clients/me');
-    const data = await response.json();
-    console.log("My Details", data);
-  };
+  // const fetchVapiConfig = async () => {
+  //   const response = await fetch('/api/clients/me');
+  //   const data = await response.json();
+  //   console.log("My Details", data);
+  // };
 
   useEffect(() => {
     fetchBalance();
-    fetchVapiConfig();
+    // fetchVapiConfig();
   }, []);
 
   // Helper function to check if any calls are not initiated
@@ -68,22 +67,21 @@ export default function Dashboard() {
             ...lead,
             callId: callResponse.id,
             callStatus: 'Initiated',
-            createdAt: callResponse.createdAt,
-            callResponse: callResponse
+            createdAt: callResponse.createdAt
           };
           setLeadData([...updatedLeadData]);
 
           // setCallMessages(`Waiting 2 minutes to finish the call...`);
           // await new Promise(resolve => setTimeout(resolve, 2 * 60 * 1000));
           
-          const getCallResponse = await getCall(callResponse.id);
-          updatedLeadData[index] = {
-            ...updatedLeadData[index],
-            callStatus: 'Done',
-            endedReason: getCallResponse.endedReason,
-            getCallResponse: getCallResponse
-          };
-          setLeadData([...updatedLeadData]);
+          // const getCallResponse = await getCall(callResponse.id);
+          // updatedLeadData[index] = {
+          //   ...updatedLeadData[index],
+          //   callStatus: 'Done',
+          //   endedReason: getCallResponse.endedReason,
+          //   getCallResponse: getCallResponse
+          // };
+          // setLeadData([...updatedLeadData]);
         }
       } catch (error) {
         console.error(`Call failed for ${lead.phoneNumber}:`, error);

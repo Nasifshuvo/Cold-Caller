@@ -3,6 +3,35 @@ import { useState, useEffect } from "react";
 import { LeadsData } from "@/types/leadsData";
 import axios from "axios";
 
+interface ValidationResult {
+  canProceed: boolean;
+  totalCost: number;
+  possibleCalls: number;
+  message: string;
+}
+
+const calculateCallEstimates = (
+  phoneNumbers: number, 
+  estimatedCostPerCall: number, 
+  currentBalance: number,
+  minimumBalance: number = 2
+): ValidationResult => {
+  const totalEstimatedCost = phoneNumbers * estimatedCostPerCall;
+  const availableBalance = currentBalance - minimumBalance;
+  const possibleCalls = Math.floor(availableBalance / estimatedCostPerCall);
+
+  return {
+    canProceed: totalEstimatedCost <= availableBalance,
+    totalCost: totalEstimatedCost,
+    possibleCalls,
+    message: totalEstimatedCost > availableBalance
+      ? `Warning: The estimated cost for ${phoneNumbers} calls is $${totalEstimatedCost.toFixed(2)}. 
+         With your current balance of $${currentBalance.toFixed(2)} (keeping $${minimumBalance.toFixed(2)} minimum), 
+         you can only make ${possibleCalls} calls. Please upload a file with ${possibleCalls} or fewer numbers.`
+      : `Estimated cost for ${phoneNumbers} calls: $${totalEstimatedCost.toFixed(2)}`
+  };
+};
+
 export default function FileUploader({setLeadData}: {
   setLeadData: (data: LeadsData[]) => void
 }) {
@@ -38,6 +67,26 @@ export default function FileUploader({setLeadData}: {
         }
     };
 
+    const checkForDuplicates = (data: LeadsData[]): { 
+        hasDuplicates: boolean; 
+        duplicates: string[];
+    } => {
+        const phoneNumbers = new Set<string>();
+        const duplicates = new Set<string>();
+
+        data.forEach(lead => {
+            if (phoneNumbers.has(lead.phoneNumber)) {
+                duplicates.add(lead.phoneNumber);
+            }
+            phoneNumbers.add(lead.phoneNumber);
+        });
+
+        return {
+            hasDuplicates: duplicates.size > 0,
+            duplicates: Array.from(duplicates)
+        };
+    };
+
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!clientId) {
             setMessage('Client ID not available');
@@ -49,10 +98,9 @@ export default function FileUploader({setLeadData}: {
 
         const formData = new FormData();
         formData.append('file', file);
-        console.log("Going to upload file");
 
         try {
-            // First, upload the file
+            // First, upload and parse the file
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData,
@@ -63,14 +111,34 @@ export default function FileUploader({setLeadData}: {
                 setMessage(result.message || "Upload failed");
                 return;
             }
-            console.log("Result:", result);
-            console.log("Creating Leads...");
-            // Then create leads through the API endpoint
+
+            // Check for duplicates first
+            const { hasDuplicates, duplicates } = checkForDuplicates(result.data);
+            if (hasDuplicates) {
+                setMessage(`Duplicate phone numbers found: ${duplicates.join(', ')}. Please remove duplicates and try again.`);
+                return;
+            }
+
+            // Then get client details for balance and estimated cost
+            const clientResponse = await fetch('/api/clients/me');
+            const clientData = await clientResponse.json();
+            
+            // Validate call estimates
+            const validation = calculateCallEstimates(
+                result.data.length,
+                Number(clientData.estimatedCallCost) || 0.08,
+                Number(clientData.balance)
+            );
+
+            if (!validation.canProceed) {
+                setMessage(validation.message);
+                return;
+            }
+
+            // If validation passes, proceed with creating leads
             const createResponse = await fetch('/api/clients/leads/create', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     clientId,
                     fileName: file.name,
@@ -78,18 +146,12 @@ export default function FileUploader({setLeadData}: {
                 }),
             });
 
-            console.log('Sending data:', {
-                clientId,
-                fileName: file.name,
-                leads: result.data
-            });
-
             const createResult = await createResponse.json();
             if (!createResponse.ok) {
                 throw new Error(createResult.error || 'Failed to create leads');
             }
 
-            setMessage("Upload successful!");
+            setMessage(`Upload successful! ${validation.message}`);
             setLeadData(result.data);
             
         } catch (error) {
@@ -156,11 +218,13 @@ export default function FileUploader({setLeadData}: {
 
             {message && (
                 <div className={`mt-4 p-4 rounded-lg ${
-                    message.includes("Error") 
-                        ? "bg-red-50 text-red-700" 
-                        : "bg-green-50 text-green-700"
+                    message.includes("Warning") 
+                        ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
+                        : message.includes("successful")
+                            ? "bg-green-50 border border-green-200 text-green-800"
+                            : "bg-red-50 border border-red-200 text-red-800"
                 }`}>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm whitespace-pre-line font-medium">
                         {message}
                     </p>
                 </div>

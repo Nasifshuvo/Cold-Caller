@@ -156,6 +156,8 @@ export interface VapiConfiguration {
   init(config: VapiConfig): void;
   isInitialized(): boolean;
   listCalls(): Promise<Call[]>;
+  initialize(config: VapiConfig): Promise<void>;
+  getCall(id: string): Promise<Call>;
 }
 
 // Remove unused empty interfaces/types 

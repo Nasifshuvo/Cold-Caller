@@ -29,9 +29,6 @@ export interface LeadsData {
   phoneNumber: string;
   callId?: string;
   callStatus?: string;
-  response?: string;
   createdAt?: string;
-  callResponse?: VapiCallResponse;
-  getCallResponse?: VapiCallResponse;
   endedReason?: string;
 }
