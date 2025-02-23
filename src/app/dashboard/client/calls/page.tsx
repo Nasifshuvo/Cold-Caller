@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getVapiConfig } from '@/lib/vapi';
 import { useSession } from 'next-auth/react';
 import { Tab } from '@headlessui/react';
@@ -159,7 +159,7 @@ export default function CallsPage() {
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [rateMultiplier, setRateMultiplier] = useState(2);
 
-  async function fetchAndSyncCalls() {
+  const fetchAndSyncCalls = useCallback(async () => {
     try {
       const vapiConfig = getVapiConfig();
       console.log('Initial Vapi state:', vapiConfig.isInitialized());
@@ -201,7 +201,7 @@ export default function CallsPage() {
     } catch (error) {
       console.error('Error:', error);
     } 
-  }
+  }, [session]);
 
   useEffect(() => {
     if (session?.user?.id) {

@@ -43,6 +43,7 @@ interface CallMetadata {
       }[];
       provider: string;
       temperature: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: any[]; // TODO: Define the type for 'tools' array
     };
     recordingEnabled: boolean;

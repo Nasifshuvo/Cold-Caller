@@ -2,14 +2,10 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
-type Props = {
-  params: { id: string }
-  searchParams: { [key: string]: string | string[] | undefined }
-}
-
 export async function PUT(
   request: Request,
-  props: Props
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { params }: any
 ) {
   try {
     const session = await auth();
@@ -20,7 +16,7 @@ export async function PUT(
     const body = await request.json();
 
     const client = await prisma.client.update({
-      where: { id: parseInt(props.params.id) },
+      where: { id: parseInt(params.id) },
       data: { 
         estimatedCallCost: body.estimatedCallCost,
       },

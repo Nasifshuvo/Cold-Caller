@@ -1,27 +1,59 @@
 import { getVapiConfig } from './config';
 import { Call } from './types';
-import { syncSingleCall } from './sync-calls';
 
 export async function createOutboundCall(customerPhoneNumber: string): Promise<Call> {
   const vapiConfig = getVapiConfig();
+  const config = vapiConfig.getConfig();
   
+  if (!config.phoneNumberId || !config.assistantId) {
+    throw new Error('VAPI configuration missing phoneNumberId or assistantId');
+  }
+
   try {
-    // 1. Create call using Vapi API
-    const call = await vapiConfig.createCall(customerPhoneNumber);
-    
-    if (!call.id) {
-      throw new Error('Failed to get call ID from Vapi');
+    // Ensure phone number is in international format
+    const phoneNumber = customerPhoneNumber.startsWith('+') 
+      ? customerPhoneNumber 
+      : `+${customerPhoneNumber}`;
+
+    // Create the call payload
+    const payload = {
+      name: "US Foreclosure Solution",
+      type: "outboundPhoneCall",
+      phoneNumberId: config.phoneNumberId,
+      assistantId: config.assistantId,
+      customer: {
+        number: phoneNumber
+      }
+    };
+
+    console.log('Creating VAPI call with payload:', payload);
+
+    // Make the API call
+    const response = await fetch("https://api.vapi.ai/call", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('VAPI API error response:', error);
+      throw new Error(`VAPI call failed: ${error.message || 'Unknown error'}`);
     }
 
-    // 2. Sync call with database
-    await syncSingleCall(call.id);
+    const call = await response.json();
+    console.log('VAPI call created successfully:', call);
+    
+    if (!call.id) {
+      throw new Error('Failed to get call ID from VAPI');
+    }
 
-    // 3. Return the call data
     return call;
-
   } catch (error: unknown) {
-    console.error('Failed to create and sync outbound call:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    throw new Error(errorMessage);
+    console.error('Failed to create outbound call:', error);
+    throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
   }
 } 
