@@ -7,7 +7,8 @@ import {
   CreditCardIcon,
   DocumentIcon,
   PhoneIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  MegaphoneIcon
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -17,6 +18,12 @@ export default function Sidebar() {
     { name: 'Dashboard', href: '/dashboard/client', icon: HomeIcon },
     { name: 'Profile', href: '/dashboard/client/profile', icon: UserIcon },
     { name: 'Calls', href: '/dashboard/client/calls', icon: PhoneIcon },
+    { 
+      name: 'Campaigns', 
+      href: '/dashboard/client/campaign/all', 
+      icon: MegaphoneIcon,
+      isActive: pathname?.startsWith('/dashboard/client/campaign')
+    },
     { name: 'Billing', href: '/dashboard/client/billing', icon: CreditCardIcon },
     { name: 'Imports', href: '/dashboard/client/imports', icon: DocumentIcon },
     { name: 'Settings', href: '/dashboard/admin/settings', icon: Cog6ToothIcon },
@@ -32,7 +39,7 @@ export default function Sidebar() {
           <div className="flex-1 flex flex-col overflow-y-auto bg-gray-800">
             <nav className="flex-1 px-2 py-4 space-y-1">
               {navigation.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.isActive || pathname === item.href;
                 return (
                   <Link
                     key={item.name}

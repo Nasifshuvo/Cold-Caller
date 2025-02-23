@@ -26,9 +26,10 @@ export interface VapiCallResponse {
 }
 
 export interface LeadsData {
-  phoneNumber: string;
   callId?: string;
+  phoneNumber: string;
+  name?: string;
   callStatus?: string;
+  response?: string;
   createdAt?: string;
-  endedReason?: string;
 }

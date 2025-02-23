@@ -16,6 +16,10 @@ export interface ListCallsParams extends PaginationParams {
   id?: string;
   assistantId?: string;
   phoneNumberId?: string;
+  limit?: number;
+  before?: string;
+  after?: string;
+  status?: string;
 }
 
 export interface CreateCallDTO {
@@ -43,11 +47,22 @@ export interface Call {
   updatedAt: string;
   orgId: string;
   cost: number;
-  customer?: {
+  assistant: Record<string, unknown>;
+  customer: {
     number: string;
   };
-  status: 'ended' | string;
-  endedReason: string;
+  status: string;
+  phoneCallProvider: string;
+  phoneCallProviderId: string;
+  phoneCallTransport: string;
+  assistantOverrides: Record<string, unknown>;
+  name: string;
+  monitor: {
+    listenUrl: string;
+    controlUrl: string;
+  };
+  transport: Record<string, unknown>;
+  endedReason?: string;
   messages: CallMessage[];
   stereoRecordingUrl: string;
   costBreakdown: {
@@ -158,6 +173,8 @@ export interface VapiConfiguration {
   listCalls(): Promise<Call[]>;
   initialize(config: VapiConfig): Promise<void>;
   getCall(id: string): Promise<Call>;
+  getConfig(): VapiConfig;
+  updateConfig(newConfig: Partial<VapiConfig>): void;
 }
 
 // Remove unused empty interfaces/types 

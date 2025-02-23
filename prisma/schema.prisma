@@ -51,6 +51,7 @@ model Client {
   leads             Lead[]
   leadImports       LeadImport[]
   transactions      Transaction[]
+  campaigns         Campaign[]
 
   @@index([userId])
 }
@@ -108,11 +109,14 @@ model Lead {
   calls       Call[]
   client      Client      @relation(fields: [clientId], references: [id])
   leadImport  LeadImport? @relation(fields: [importId], references: [id])
+  campaignId  Int?
+  campaign    Campaign?   @relation(fields: [campaignId], references: [id])
 
   @@unique([clientId, phoneNumber], name: "clientId_phoneNumber")
   @@index([clientId])
   @@index([phoneNumber])
   @@index([importId])
+  @@index([campaignId])
 }
 
 model Call {
@@ -143,10 +147,33 @@ model Call {
   costDeducted  Boolean  @default(false)
   client        Client   @relation(fields: [clientId], references: [id])
   lead          Lead?    @relation(fields: [leadId], references: [id])
+  campaignId    Int?
+  campaign      Campaign? @relation(fields: [campaignId], references: [id])
 
   @@index([leadId])
   @@index([clientId])
   @@index([vapiCallId])
+  @@index([campaignId])
+}
+
+model Campaign {
+  id          Int       @id @default(autoincrement())
+  name        String
+  type        String    @default("Call")
+  status      String    @default("Draft") // Draft, Running, Completed
+  clientId    Int
+  totalLeads  Int       @default(0)
+  processedLeads Int    @default(0)
+  estimatedCost Decimal @default(0.00) @db.Decimal(10, 2)
+  actualCost    Decimal @default(0.00) @db.Decimal(10, 2)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  client      Client    @relation(fields: [clientId], references: [id])
+  leads       Lead[]
+  calls       Call[]
+
+  @@index([clientId])
+  @@index([status])
 }
 
 model Appointment {

@@ -8,47 +8,92 @@ import { VapiConfiguration, VapiConfig, Call } from './types';
 export class VapiConfigurationImpl implements VapiConfiguration {
   private apiKey?: string;
   private assistantId?: string;
+  private phoneNumberId?: string;
+  private baseURL: string = 'https://api.vapi.ai';
+  private defaultCallSettings: {
+    recordingEnabled: boolean;
+    transcriptionEnabled: boolean;
+  } = {
+    recordingEnabled: true,
+    transcriptionEnabled: true,
+  };
 
-  init(config: VapiConfig): void {
+  public init(config: VapiConfig): void {
     this.apiKey = config.apiKey;
     this.assistantId = config.assistantId;
-  }
-
-  isInitialized(): boolean {
-    return !!this.apiKey && !!this.assistantId;
-  }
-
-  async listCalls(): Promise<Call[]> {
-    if (!this.isInitialized()) {
-      throw new Error('VapiConfiguration not initialized');
+    this.phoneNumberId = config.phoneNumberId;
+    this.baseURL = config.baseURL || this.baseURL;
+    if (config.defaultCallSettings) {
+      this.defaultCallSettings = {
+        ...this.defaultCallSettings,
+        ...config.defaultCallSettings,
+      };
     }
-
-    const response = await fetch('https://api.vapi.ai/call/list', {
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await response.json();
-    return data;
   }
 
-  async initialize(config: VapiConfig): Promise<void> {
+  public async initialize(config: VapiConfig): Promise<void> {
     this.init(config);
   }
 
-  async getCall(id: string): Promise<Call> {
+  public isInitialized(): boolean {
+    return !!this.apiKey && !!this.assistantId;
+  }
+
+  public getConfig(): VapiConfig {
+    return {
+      apiKey: this.apiKey || '',
+      assistantId: this.assistantId,
+      phoneNumberId: this.phoneNumberId,
+      baseURL: this.baseURL,
+      defaultCallSettings: this.defaultCallSettings
+    };
+  }
+
+  public updateConfig(newConfig: Partial<VapiConfig>): void {
+    if (newConfig.apiKey) this.apiKey = newConfig.apiKey;
+    if (newConfig.assistantId) this.assistantId = newConfig.assistantId;
+    if (newConfig.phoneNumberId) this.phoneNumberId = newConfig.phoneNumberId;
+    if (newConfig.baseURL) this.baseURL = newConfig.baseURL;
+    if (newConfig.defaultCallSettings) {
+      this.defaultCallSettings = {
+        ...this.defaultCallSettings,
+        ...newConfig.defaultCallSettings,
+      };
+    }
+  }
+
+  public async listCalls(): Promise<Call[]> {
     if (!this.isInitialized()) {
-      throw new Error('VapiConfiguration not initialized');
+      throw new Error('VAPI configuration not initialized');
     }
 
-    const response = await fetch(`https://api.vapi.ai/call/${id}`, {
+    const response = await fetch(`${this.baseURL}/call`, {
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
       },
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to list calls');
+    }
+
+    return response.json();
+  }
+
+  public async getCall(id: string): Promise<Call> {
+    if (!this.isInitialized()) {
+      throw new Error('VAPI configuration not initialized');
+    }
+
+    const response = await fetch(`${this.baseURL}/call/${id}`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get call');
+    }
 
     return response.json();
   }
