@@ -40,14 +40,8 @@ export async function POST(request: Request) {
       trim: true
     }) as CsvRecord[];
 
-    // Validate phone numbers
-    const validRecords = records.filter((record) => {
-      const phoneNumber = record.phoneNumber?.toString().trim();
-      return phoneNumber && /^\d{10}$/.test(phoneNumber);
-    });
-
-    if (validRecords.length === 0) {
-      return NextResponse.json({ error: 'No valid phone numbers found in the file' }, { status: 400 });
+    if (records.length === 0) {
+      return NextResponse.json({ error: 'No records found in the file' }, { status: 400 });
     }
 
     // Create lead import record
@@ -55,14 +49,14 @@ export async function POST(request: Request) {
       data: {
         clientId,
         fileName: file.name,
-        totalLeads: validRecords.length,
+        totalLeads: records.length,
       }
     });
 
     // Create leads
     const leads = await Promise.all(
-      validRecords.map(async (record) => {
-        const phoneNumber = record.phoneNumber.toString().trim();
+      records.map(async (record) => {
+        const phoneNumber = record.phoneNumber?.toString().trim() || '';
         return prisma.lead.upsert({
           where: {
             clientId_phoneNumber: {
