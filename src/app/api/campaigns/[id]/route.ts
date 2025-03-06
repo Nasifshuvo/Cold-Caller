@@ -94,10 +94,10 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { name, totalLeads, leads, estimatedCost } = body;
+    const { name, totalLeads, leads, estimatedMinutes } = body;
 
     // Update campaign
-    const campaign = await prisma.campaign.update({
+    const updatedCampaign = await prisma.campaign.update({
       where: {
         id: parseInt(id),
         clientId,
@@ -105,7 +105,7 @@ export async function PATCH(
       data: {
         name,
         totalLeads,
-        estimatedCost: new Prisma.Decimal(estimatedCost || 0),
+        estimatedSeconds: new Prisma.Decimal(estimatedMinutes ? estimatedMinutes * 60 : 0),
       },
     });
 
@@ -114,7 +114,7 @@ export async function PATCH(
       // Delete existing leads
       await prisma.lead.deleteMany({
         where: {
-          campaignId: campaign.id
+          campaignId: updatedCampaign.id
         }
       });
 
@@ -123,9 +123,8 @@ export async function PATCH(
         data: leads.map((lead: LeadsData) => ({
           clientId,
           phoneNumber: lead.phoneNumber,
-          name: lead.name || null,
           callStatus: 'Not Initiated',
-          campaignId: campaign.id
+          campaignId: updatedCampaign.id
         })),
         skipDuplicates: true
       });
@@ -133,7 +132,7 @@ export async function PATCH(
 
     return NextResponse.json({ 
       message: 'Campaign updated successfully',
-      campaign 
+      campaign: updatedCampaign 
     });
   } catch (error) {
     console.error('Error updating campaign:', error);

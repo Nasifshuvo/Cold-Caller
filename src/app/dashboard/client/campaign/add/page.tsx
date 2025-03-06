@@ -11,31 +11,31 @@ export default function AddCampaign() {
   const [campaignName, setCampaignName] = useState("");
   const [isScheduled, setIsScheduled] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [estimatedCost, setEstimatedCost] = useState(0);
-  const [clientBalance, setClientBalance] = useState(0);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(0);
+  const [clientMinutes, setClientMinutes] = useState(0);
+  const [estimatedMinutesPerCall, setEstimatedMinutesPerCall] = useState(3);
 
-  // Fetch client balance
+  // Fetch client minutes and settings
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchClientDetails = async () => {
       try {
-        const response = await fetch('/api/clients/balance');
+        const response = await fetch('/api/clients/me');
         const data = await response.json();
         if (response.ok) {
-          setClientBalance(parseFloat(data.balance));
+          setClientMinutes(data.minutes);
+          setEstimatedMinutesPerCall(parseFloat(data.estimatedMinutesPerCall));
         }
       } catch (error) {
-        console.error('Error fetching balance:', error);
+        console.error('Error fetching client details:', error);
       }
     };
-    fetchBalance();
+    fetchClientDetails();
   }, []);
 
-  // Calculate estimated cost whenever leadData changes
+  // Calculate estimated minutes whenever leadData changes
   useEffect(() => {
-    // Assuming $2 per call
-    const costPerCall = 2;
-    setEstimatedCost(leadData.length * costPerCall);
-  }, [leadData]);
+    setEstimatedMinutes(leadData.length * estimatedMinutesPerCall);
+  }, [leadData, estimatedMinutesPerCall]);
 
   const handleSubmit = async (status: 'draft' | 'running') => {
     if (!campaignName || leadData.length === 0) {
@@ -43,22 +43,13 @@ export default function AddCampaign() {
       return;
     }
 
-    if (status === 'running' && estimatedCost > clientBalance) {
-      alert("Insufficient balance to run this campaign");
+    if (status === 'running' && estimatedMinutes > clientMinutes) {
+      alert("Insufficient minutes to run this campaign");
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Creating campaign with data:', {
-        name: campaignName,
-        type: 'Call',
-        status: 'Draft', // Always create as Draft first
-        totalLeads: leadData.length,
-        leads: leadData,
-        estimatedCost,
-      });
-
       // Create campaign
       const response = await fetch('/api/campaigns', {
         method: 'POST',
@@ -68,26 +59,24 @@ export default function AddCampaign() {
         body: JSON.stringify({
           name: campaignName,
           type: 'Call',
-          status: 'Draft', // Always create as Draft first
+          status: 'Draft',
           totalLeads: leadData.length,
           leads: leadData,
-          estimatedCost,
+          estimatedMinutes,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Server response:', errorData);
         throw new Error(errorData.error || 'Failed to create campaign');
       }
       
-      const campaign = await response.json();
-      console.log('Campaign created:', campaign);
+      const campaignResponse = await response.json();
+      console.log('Campaign created:', campaignResponse);
 
       // If status is 'running', call the run endpoint
       if (status === 'running') {
-        console.log('Starting campaign calls...');
-        const runResponse = await fetch(`/api/campaigns/${campaign.id}/run`, {
+        const runResponse = await fetch(`/api/campaigns/${campaignResponse.data.id}/run`, {
           method: 'POST'
         });
 
@@ -95,14 +84,12 @@ export default function AddCampaign() {
           const errorData = await runResponse.json();
           throw new Error(errorData.error || 'Failed to run campaign');
         }
-
-        console.log('Campaign started successfully');
       }
 
       router.push('/dashboard/client/campaign/all');
     } catch (error) {
       console.error('Error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create campaign');
+      alert(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -169,6 +156,24 @@ export default function AddCampaign() {
           <FileUploader setLeadData={setLeadData} />
         </div>
 
+        {estimatedMinutes > 0 && (
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <h3 className="text-lg font-semibold mb-2">Campaign Estimate</h3>
+            <p>Total Leads: {leadData.length}</p>
+            <p>Estimated Minutes Required: {estimatedMinutes}</p>
+            <p>Your Minutes Balance: {clientMinutes}</p>
+
+            {estimatedMinutes > clientMinutes && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
+                <p className="text-sm text-red-600">
+                  Warning: Your current balance ({clientMinutes} minutes) is insufficient for this campaign.
+                  You need {estimatedMinutes - clientMinutes} more minutes.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {leadData.length > 0 && (
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="text-lg font-semibold">Campaign Summary</h2>
@@ -179,8 +184,8 @@ export default function AddCampaign() {
                 <p className="text-2xl font-bold text-gray-900">{leadData.length}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Estimated Campaign Cost</h3>
-                <p className="text-2xl font-bold text-gray-900">${estimatedCost.toFixed(2)}</p>
+                <h3 className="text-sm font-medium text-gray-500">Estimated Campaign Duration</h3>
+                <p className="text-2xl font-bold text-gray-900">{estimatedMinutes} minutes</p>
               </div>
             </div>
 
@@ -190,14 +195,12 @@ export default function AddCampaign() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Name</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Phone</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {leadData.map((lead, index) => (
                       <tr key={index}>
-                        <td className="px-4 py-2 text-sm text-gray-900">{lead.name || 'N/A'}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{lead.phoneNumber}</td>
                       </tr>
                     ))}
@@ -205,41 +208,33 @@ export default function AddCampaign() {
                 </table>
               </div>
             </div>
-
-            {estimatedCost > clientBalance && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
-                <p className="text-sm text-red-600">
-                  Warning: Your current balance (${clientBalance.toFixed(2)}) is insufficient for this campaign.
-                </p>
-              </div>
-            )}
           </div>
         )}
 
-        {leadData.length > 0 && (
-          <div className="flex space-x-4">
-            <button
-              onClick={() => handleSubmit('draft')}
-              disabled={loading}
-              className={`px-4 py-2 text-white rounded-md transition-colors ${
-                loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-600'
-              }`}
-            >
-              {loading ? 'Processing...' : 'Save as Draft'}
-            </button>
-            <button
-              onClick={() => handleSubmit('running')}
-              disabled={loading || estimatedCost > clientBalance}
-              className={`px-4 py-2 text-white rounded-md transition-colors ${
-                loading || estimatedCost > clientBalance
-                  ? 'bg-blue-400 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              }`}
-            >
-              {loading ? 'Processing...' : 'Run Campaign'}
-            </button>
-          </div>
-        )}
+        
+
+        <div className="flex justify-end space-x-4 pt-4">
+          <button
+            onClick={() => handleSubmit('draft')}
+            disabled={loading}
+            className={`px-4 py-2 text-white rounded-md transition-colors ${
+              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-600'
+            }`}
+          >
+            {loading ? 'Processing...' : 'Save as Draft'}
+          </button>
+          <button
+            onClick={() => handleSubmit('running')}
+            disabled={loading || estimatedMinutes > clientMinutes}
+            className={`px-4 py-2 text-white rounded-md transition-colors ${
+              loading || estimatedMinutes > clientMinutes
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600'
+            }`}
+          >
+            {loading ? 'Processing...' : 'Run Campaign'}
+          </button>
+        </div>
       </div>
     </div>
   );

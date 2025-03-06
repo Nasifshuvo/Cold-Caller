@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 import { 
@@ -131,8 +131,10 @@ function LoadingSpinner() {
 export default function AllCampaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     fetchCampaigns();
   }, []);
 
@@ -162,25 +164,39 @@ export default function AllCampaigns() {
     }
   };
 
-  const handleExport = async (campaignId: number) => {
+  const handleExport = useCallback(async (campaignId: number) => {
     try {
       const response = await fetch(`/api/campaigns/${campaignId}/export`);
-      if (!response.ok) throw new Error('Failed to export campaign');
-      
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `campaign-${campaignId}-report.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch {
-      console.error('Error exporting campaign');
-      alert('Failed to export campaign');
+      
+      if (isClient) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `campaign-${campaignId}-export.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error('Error exporting campaign:', error);
     }
-  };
+  }, [isClient]);
+
+  const formatDate = useCallback((dateString: string) => {
+    if (!dateString || !isClient) return '';
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }).format(date);
+    } catch {
+      return '';
+    }
+  }, [isClient]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -192,23 +208,6 @@ export default function AllCampaigns() {
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }).format(date);
-    } catch (error) {
-      console.log(JSON.stringify(error));
-      return dateString;
     }
   };
 

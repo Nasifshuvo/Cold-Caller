@@ -13,20 +13,16 @@ export async function POST(
     }
 
     const { id } = await context.params;
-
     const clientId = parseInt(id);
-
     const body = await request.json();
-    console.log('Request body:', body);
-
-    const amount = parseFloat(body.amount);
-    console.log('Parsed amount:', amount);
-
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    
+    const minutes = parseInt(body.amount);
+    if (!minutes || minutes <= 0) {
+      return NextResponse.json({ error: 'Invalid minutes amount' }, { status: 400 });
     }
 
-    console.log('Client ID:', clientId);
+    // Convert minutes to seconds
+    const seconds = minutes * 60;
 
     const result = await prisma.$transaction(async (prisma) => {
       const client = await prisma.client.findUnique({
@@ -39,18 +35,19 @@ export async function POST(
 
       const transaction = await prisma.transaction.create({
         data: {
-          amount: amount,
+          seconds: seconds,
           type: 'CREDIT',
           clientId: clientId,
-          processed: true
-        },
+          reason: 'Minutes added by admin',
+          reference: `Balance added by admin: ${minutes} minutes`
+        }
       });
 
       const updatedClient = await prisma.client.update({
         where: { id: clientId },
         data: {
-          balance: {
-            increment: amount,
+          balanceInSeconds: {
+            increment: seconds,
           },
         },
       });

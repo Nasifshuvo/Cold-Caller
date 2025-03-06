@@ -3,6 +3,19 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import * as bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+interface ClientData {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  balanceInSeconds?: number;
+  vapiKey?: string | null;
+  vapiAssistantId?: string | null;
+  vapiPhoneNumberId?: string | null;
+}
 
 export async function GET() {
   try {
@@ -23,7 +36,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json(clients);
+    return NextResponse.json({ data: clients });
   } catch (error) {
     console.error('GET clients error:', error);
     return NextResponse.json(
@@ -35,24 +48,30 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const data: ClientData = await request.json();
+
+    if (!data) {
+      return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
+    }
     
     // Validate required fields
-    if (!body.email || !body.password || !body.name || !body.phone) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    if (!data.email || !data.password || !data.name || !data.phone) {
+      return NextResponse.json({ 
+        error: 'Required fields missing: email, password, name, and phone are required' 
+      }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(body.password, 10);
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const result = await prisma.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
       const user = await tx.user.create({
         data: {
-          email: body.email,
+          email: data.email,
           password: hashedPassword,
           roleId: 2,
           active: true
@@ -61,10 +80,15 @@ export async function POST(request: Request) {
 
       const client = await tx.client.create({
         data: {
-          name: body.name,
-          email: body.email,
-          phone: body.phone,
-          userId: user.id
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          userId: user.id,
+          balanceInSeconds: data.balanceInSeconds || 0,
+          vapiKey: data.vapiKey || null,
+          vapiAssistantId: data.vapiAssistantId || null,
+          vapiPhoneNumberId: data.vapiPhoneNumberId || null,
+          active: true
         },
         include: {
           user: {
@@ -81,12 +105,20 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: result });
   } catch (error) {
-    console.error('POST client error:', error);
+    // Log the error for debugging
+    console.error('POST client error:', error instanceof Error ? error.message : error);
     
-    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+    // Handle unique constraint violation
+    if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'P2002') {
+      return NextResponse.json({ 
+        error: 'Email already exists'
+      }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Failed to create client' }, { status: 500 });
+    // Handle other errors
+    return NextResponse.json({ 
+      error: 'Failed to create client',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 

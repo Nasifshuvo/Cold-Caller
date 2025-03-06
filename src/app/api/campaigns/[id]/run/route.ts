@@ -34,7 +34,17 @@ export async function POST(
     console.log('Fetching user details for:', session.user.email);
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: { client: true },
+      include: {
+        client: {
+          select: {
+            id: true,
+            vapiKey: true,
+            vapiAssistantId: true,
+            vapiPhoneNumberId: true,
+            balanceInSeconds: true
+          }
+        }
+      },
     });
 
     if (!user?.client) {
@@ -86,15 +96,19 @@ export async function POST(
     }
 
     // Check client balance
-    const clientBalance = parseFloat(user.client.balance.toString());
+    const clientBalanceInSeconds = user.client.balanceInSeconds ? parseFloat(user.client.balanceInSeconds.toString()) : 0;
+    const campaignEstimatedSeconds = campaign.estimatedSeconds ? parseFloat(campaign.estimatedSeconds.toString()) : 0;
+
     console.log('Checking client balance:', {
-      currentBalance: clientBalance,
-      minimumRequired: 2
+      clientBalanceInSeconds,
+      campaignEstimatedSeconds,
     });
 
-    if (clientBalance < 2) {
-      console.error('Insufficient balance:', clientBalance);
-      return NextResponse.json({ error: 'Insufficient balance. Minimum $2 required.' }, { status: 400 });
+    if (clientBalanceInSeconds < campaignEstimatedSeconds) {
+      console.error('Insufficient balance:', clientBalanceInSeconds);
+      return NextResponse.json({
+        error: `Insufficient balance. Required: ${(campaignEstimatedSeconds / 60).toFixed(2)} minutes, Available: ${(clientBalanceInSeconds / 60).toFixed(2)} minutes.`
+      }, { status: 400 });
     }
 
     // Update campaign status to Running

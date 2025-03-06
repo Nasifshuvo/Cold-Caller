@@ -52,30 +52,41 @@ export async function POST(req: Request) {
       const call = await tx.call.create({
         data: {
           ...callData,
-          costDeducted: false
+          costDeducted: false,
+          durationInSeconds: callData.durationInSeconds || 0
         }
       });
 
-      // If final_cost exists and hasn't been deducted
-      if (call.final_cost && !call.costDeducted) {
+      // If duration exists and hasn't been deducted
+      if (call.durationInSeconds && !call.costDeducted) {
+        // First check if client has sufficient balance
+        const client = await tx.client.findUnique({
+          where: { id: call.clientId },
+          select: { balanceInSeconds: true }
+        });
+
+        if (!client || parseFloat(client.balanceInSeconds.toString()) < call.durationInSeconds) {
+          throw new Error('Insufficient balance');
+        }
+
         // Create debit transaction
         const transaction = await tx.transaction.create({
           data: {
             clientId: call.clientId,
-            amount: call.final_cost,
+            seconds: -call.durationInSeconds, // Negative for debit
             type: 'DEBIT',
-            reason: `Call charge for call ID: ${call.id}`,
+            reason: `Call duration: ${call.durationInSeconds} seconds`,
             reference: call.id.toString(),
             processed: false // Set initially to false
           }
         });
 
-        // Update client balance
+        // Update client's balance by reducing it by the call duration
         await tx.client.update({
           where: { id: call.clientId },
           data: {
-            balance: {
-              decrement: call.final_cost
+            balanceInSeconds: {
+              decrement: call.durationInSeconds
             }
           }
         });
@@ -99,6 +110,9 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Failed to create call:', error);
+    if (error instanceof Error && error.message === 'Insufficient balance') {
+      return new NextResponse('Insufficient balance', { status: 400 });
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
@@ -122,17 +136,44 @@ export async function PUT(req: Request) {
         throw new Error('Call not found');
       }
 
-      // If updating cost and cost hasn't been deducted yet
-      if (updateData.final_cost && !call.costDeducted) {
+      // If updating duration and cost hasn't been deducted yet
+      if (updateData.durationInSeconds && !call.costDeducted) {
+        // First check if client has sufficient balance
+        const client = await tx.client.findUnique({
+          where: { id: call.clientId },
+          select: { balanceInSeconds: true }
+        });
+
+        if (!client || parseFloat(client.balanceInSeconds.toString()) < updateData.durationInSeconds) {
+          throw new Error('Insufficient balance');
+        }
+
         // Create debit transaction
-        await tx.transaction.create({
+        const transaction = await tx.transaction.create({
           data: {
             clientId: call.clientId,
-            amount: updateData.final_cost,
+            seconds: -updateData.durationInSeconds, // Negative for debit
             type: 'DEBIT',
-            reason: `Call charge for call ID: ${call.id}`,
-            processed: true
+            reason: `Call duration: ${updateData.durationInSeconds} seconds`,
+            reference: call.id.toString(),
+            processed: false // Set initially to false
           }
+        });
+
+        // Update client's balance by reducing it by the call duration
+        await tx.client.update({
+          where: { id: call.clientId },
+          data: {
+            balanceInSeconds: {
+              decrement: updateData.durationInSeconds
+            }
+          }
+        });
+
+        // Mark transaction as processed
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { processed: true }
         });
 
         updateData.costDeducted = true;
@@ -147,8 +188,13 @@ export async function PUT(req: Request) {
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error('Failed to update call:', error);
-    if (error instanceof Error && error.message === 'Call not found') {
-      return new NextResponse('Call not found', { status: 404 });
+    if (error instanceof Error) {
+      if (error.message === 'Call not found') {
+        return new NextResponse('Call not found', { status: 404 });
+      }
+      if (error.message === 'Insufficient balance') {
+        return new NextResponse('Insufficient balance', { status: 400 });
+      }
     }
     return new NextResponse('Internal Server Error', { status: 500 });
   }

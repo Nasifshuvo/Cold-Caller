@@ -1,15 +1,7 @@
 'use client';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  HomeIcon, 
-  UserIcon,
-  CreditCardIcon,
-  DocumentIcon,
-  PhoneIcon,
-  Cog6ToothIcon,
-  MegaphoneIcon
-} from "@heroicons/react/24/outline";
+import { HomeIcon, UserIcon, MegaphoneIcon, CreditCardIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -17,7 +9,7 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard/client', icon: HomeIcon },
     { name: 'Profile', href: '/dashboard/client/profile', icon: UserIcon },
-    { name: 'Calls', href: '/dashboard/client/calls', icon: PhoneIcon },
+    // { name: 'Calls', href: '/dashboard/client/calls', icon: PhoneIcon },
     { 
       name: 'Campaigns', 
       href: '/dashboard/client/campaign/all', 
@@ -25,8 +17,8 @@ export default function Sidebar() {
       isActive: pathname?.startsWith('/dashboard/client/campaign')
     },
     { name: 'Billing', href: '/dashboard/client/billing', icon: CreditCardIcon },
-    { name: 'Imports', href: '/dashboard/client/imports', icon: DocumentIcon },
-    { name: 'Settings', href: '/dashboard/admin/settings', icon: Cog6ToothIcon },
+    // { name: 'Imports', href: '/dashboard/client/imports', icon: DocumentIcon },
+    // { name: 'Settings', href: '/dashboard/admin/settings', icon: Cog6ToothIcon },
   ];
 
   return (

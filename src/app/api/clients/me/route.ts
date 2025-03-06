@@ -23,6 +23,22 @@ export async function GET() {
       const client = await prisma.client.findFirst({
         where: {
           userId: Number(session.user.id)
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          userId: true,
+          balanceInSeconds: true,
+          vapiKey: true,
+          vapiAssistantId: true,
+          vapiPhoneNumberId: true,
+          estimatedCallCost: true,
+          estimatedMinutesPerCall: true,
+          active: true,
+          createdAt: true,
+          updatedAt: true
         }
       });
       console.log("Database response:", client);

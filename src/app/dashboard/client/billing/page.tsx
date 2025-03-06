@@ -1,11 +1,14 @@
 'use client';
 import { useEffect, useState } from "react";
+import { formatBalance } from '@/lib/utils/format';
 
 interface Transaction {
   id: number;
-  amount: string;
+  seconds: number;
   type: 'CREDIT' | 'DEBIT';
   createdAt: string;
+  reason?: string;
+  reference?: string;
 }
 
 export default function BillingPage() {
@@ -20,11 +23,7 @@ export default function BillingPage() {
         if (!response.ok) throw new Error('Failed to fetch transactions');
         
         const data = await response.json();
-        setTransactions(data.map((t: Transaction) => ({
-          ...t,
-          amount: t.amount.toString(),
-          createdAt: t.createdAt.toString()
-        })));
+        setTransactions(data);
       } catch (error) {
         console.error('Fetch error:', error);
         setError('Failed to load transactions');
@@ -57,6 +56,9 @@ export default function BillingPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Reason
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -75,7 +77,10 @@ export default function BillingPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${Number(transaction.amount).toFixed(2)}
+                    {formatBalance(Number(transaction.seconds))}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {transaction.reason || '-'}
                   </td>
                 </tr>
               ))}
