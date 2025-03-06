@@ -3,18 +3,21 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { formatBalance } from '@/lib/utils/format';
 
 interface Client {
   id: number;
-  name: string;
+  name: string | null;
   email: string;
   phone: string;
-  balance: number;
-  vapiKey?: string;
-  vapiAssistantId?: string;
-  vapiPhoneNumberId?: string;
+  balanceInSeconds: string; // Decimal field from database
+  vapiKey: string | null;
+  vapiAssistantId: string | null;
+  vapiPhoneNumberId: string | null;
+  estimatedCallCost: number | null;
   active: boolean;
   createdAt: string;
+  updatedAt: string;
   user: {
     email: string;
     active: boolean;
@@ -34,11 +37,14 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     try {
       const response = await fetch('/api/clients');
-      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch clients');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch clients');
       }
+      
+      const { data } = await response.json();
+      if (!data) throw new Error('No data received');
       
       setClients(data);
     } catch (error) {
@@ -56,6 +62,25 @@ export default function ClientsPage() {
     setError('');
     
     const formData = new FormData(e.currentTarget);
+    const requestData = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      password: formData.get('password'),
+      balanceInSeconds: parseFloat(formData.get('balanceInSeconds') as string) || 0,
+      vapiKey: formData.get('vapiKey') || undefined,
+      vapiAssistantId: formData.get('vapiAssistantId') || undefined,
+      vapiPhoneNumberId: formData.get('vapiPhoneNumberId') || undefined,
+      estimatedCallCost: parseInt(formData.get('estimatedCallCost') as string) || null,
+      active: formData.get('active') === 'true',
+    };
+
+    // Validate required fields
+    if (!requestData.name || !requestData.email || !requestData.phone || !requestData.password) {
+      setError('All required fields must be filled out');
+      setLoading(false);
+      return;
+    }
     
     try {
       const response = await fetch('/api/clients', {
@@ -63,12 +88,7 @@ export default function ClientsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.get('name'),
-          email: formData.get('email'),
-          phone: formData.get('phone'),
-          password: formData.get('password'),
-        }),
+        body: JSON.stringify(requestData),
       });
 
       const result = await response.json();
@@ -80,6 +100,7 @@ export default function ClientsPage() {
       await fetchClients(); // Refresh the clients list
       setIsModalOpen(false);
     } catch (error) {
+      console.error('Error adding client:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -105,8 +126,8 @@ export default function ClientsPage() {
         },
         body: JSON.stringify({
           vapiKey: formData.get('vapiKey'),
-          vapiAssistantId: formData.get('assistantId'),
-          vapiPhoneNumberId: formData.get('phoneId')
+          vapiAssistantId: formData.get('vapiAssistantId'),
+          vapiPhoneNumberId: formData.get('vapiPhoneNumberId')
         }),
       });
 
@@ -142,7 +163,7 @@ export default function ClientsPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Login Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance (minutes)</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VAPI Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -164,7 +185,7 @@ export default function ClientsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  ${Number(client.balance).toFixed(2)}
+                  {formatBalance(client.balanceInSeconds)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -242,13 +263,16 @@ export default function ClientsPage() {
                   placeholder="Enter password"
                 />
 
-                <Input
-                  label="Initial Balance"
-                  name="balance"
+                <label htmlFor="balanceInSeconds" className="block text-sm font-medium text-gray-700">
+                  Initial Balance (minutes)
+                </label>
+                <input
                   type="number"
+                  name="balanceInSeconds"
+                  id="balanceInSeconds"
                   step="0.01"
-                  min="0"
-                  placeholder="0.00"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="Enter initial balance in minutes"
                 />
 
                 <div className="space-y-2">
@@ -261,13 +285,13 @@ export default function ClientsPage() {
                   />
                   <Input
                     label="Assistant ID"
-                    name="assistantId"
+                    name="vapiAssistantId"
                     type="text"
                     placeholder="Enter Assistant ID"
                   />
                   <Input
                     label="Phone Number ID"
-                    name="phoneId"
+                    name="vapiPhoneNumberId"
                     type="text"
                     placeholder="Enter Phone Number ID"
                   />
@@ -311,14 +335,14 @@ export default function ClientsPage() {
               />
               <Input
                 label="Assistant ID"
-                name="assistantId"
+                name="vapiAssistantId"
                 type="text"
                 required
                 placeholder="Enter Assistant ID"
               />
               <Input
                 label="Phone Number ID"
-                name="phoneId"
+                name="vapiPhoneNumberId"
                 type="text"
                 required
                 placeholder="Enter Phone Number ID"

@@ -14,9 +14,9 @@ export async function GET() {
       include: { client: true }
     });
 
-    return NextResponse.json({ balance: user?.client?.balance || '0' });
+    return NextResponse.json({ minutes: user?.client?.balanceInSeconds || 0 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to fetch balance' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch minutes' }, { status: 500 });
   }
 }

@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
           id: String(user.id),
           email: user.email,
           role: user.roleId === 1 ? 'ADMIN' : 'CLIENT',
-          balance: user.client?.balance || '0'
+          balanceInSeconds: user.client?.balanceInSeconds ? user.client.balanceInSeconds.toString() : '0'
         };
       }
     })
@@ -48,6 +48,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.balanceInSeconds = user.balanceInSeconds;
       }
       return token;
     },
@@ -55,7 +56,7 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = token.id;
         session.user.role = token.role;
-        session.user.balance = token.balance;
+        session.user.balanceInSeconds = token.balanceInSeconds;
       }
       return session;
     }

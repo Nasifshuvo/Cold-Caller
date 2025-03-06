@@ -2,26 +2,26 @@
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
+import { formatBalance } from "@/lib/utils/format";
 
 export default function Header() {
   const { data: session } = useSession();
-  const [balance, setBalance] = useState('0.00');
+  const [balanceInSeconds, setBalanceInSeconds] = useState(0);
+
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch('/api/clients/me');
+      const data = await response.json();
+      if (data.balanceInSeconds !== undefined) {
+        setBalanceInSeconds(Number(data.balanceInSeconds));
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const response = await fetch('/api/clients/balance');
-        const data = await response.json();
-        if (data.balance) {
-          setBalance(data.balance);
-        }
-      } catch (error) {
-        console.error('Failed to fetch balance:', error);
-      }
-    };
-
     fetchBalance();
-    // Fetch every 30 seconds
     const interval = setInterval(fetchBalance, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -33,7 +33,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <h2 className="text-xl font-semibold text-gray-900">Dashboard</h2>
             <div className="bg-green-100 text-green-800 px-4 py-2 rounded-full">
-              Balance: ${Number(balance).toFixed(2)}
+              Balance: {formatBalance(balanceInSeconds)}
             </div>
           </div>
           <div className="flex items-center space-x-4">

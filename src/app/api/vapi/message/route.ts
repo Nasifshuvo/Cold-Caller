@@ -1,27 +1,62 @@
 import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { VapiMessage } from '@/types/vapi-post-response';
+
 export async function POST(request: Request) {
+  console.log('=== VAPI Webhook Request Started ===');
   try {
-    const body: VapiMessage = await request.json();
+    // Log raw request details
+    // console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    
+    // Get and log the raw body
+    const rawBody = await request.text();
+    // console.log('Raw request body:', rawBody);
+    
+    // Try parsing the body
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      // console.log('Parsed request body:', body);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new NextResponse('Invalid JSON', { status: 400 });
+    }
+
+    // Validate body structure
+    if (!body || typeof body !== 'object') {
+      console.error('Invalid body structure. Received:', body);
+      return new NextResponse('Invalid request body structure', { status: 400 });
+    }
+
+    // Type check for required fields
+    if (!body.message?.call?.id) {
+      console.error('Missing required fields. Body structure:', {
+        hasMessage: !!body.message,
+        hasCall: !!body.message?.call,
+        callId: body.message?.call?.id
+      });
+      return new NextResponse('Missing required fields', { status: 400 });
+    }
+
     const type = body.message.type;
+    console.log('Webhook type:', type);
+
+    // Store the entire request in logs
+    await prisma.log.create({
+      data: {
+        event: 'vapi_full_log',
+        description: JSON.stringify(body),
+        vapiCallId: body.message.call.id
+      }
+    });
+    console.log("Vapi Called a POST Req")
 
     if(type === "status-update"){
-      if(body.message.status === "in-progress"){
-        // Update the call record to in progress
-        await prisma.call.update({
-          where: { vapiCallId: body.message.call.id },
-          data: { callStatus: "in-progress" }
-        });
-      }else if(body.message.status === "ended"){
-        // Update the call record to ended
-        await prisma.call.update({
-          where: { vapiCallId: body.message.call.id },
-          data: { callStatus: "ended" }
-        });
-      }
-
+      // Update the call record with the status from body.message.status
+      await prisma.call.update({
+        where: { vapiCallId: body.message.call.id },
+        data: { callStatus: body.message.status }
+      });
     }else if(type === "end-of-call-report") {
       const callId = body.message.call.id;
 
@@ -33,17 +68,6 @@ export async function POST(request: Request) {
         }
       });
 
-      //Get call_rate_multiplier from Settings table where key is "call_rate_multiplier"
-      const callRateMultiplier = await prisma.setting.findUnique({
-        where: { key: "call_rate_multiplier" },
-        select: {
-          value: true
-        }
-      });
-      
-      // Parse the JSON value and extract the multiplier
-      const multiplier = callRateMultiplier ? JSON.parse(callRateMultiplier.value as string).multiplier : 2;
-      
       // Convert complex objects to JSON format
       const messagesJson = JSON.parse(JSON.stringify(body.message.artifact.messages)) as Prisma.InputJsonValue;
       const costBreakdownJson = JSON.parse(JSON.stringify(body.message.costBreakdown)) as Prisma.InputJsonValue;
@@ -51,7 +75,6 @@ export async function POST(request: Request) {
       
       // Convert cost to Decimal
       const cost = body.message.cost ? new Prisma.Decimal(body.message.cost) : null;
-      const final_cost = body.message.cost ? new Prisma.Decimal(body.message.cost * multiplier) : null; // Using dynamic multiplier
 
       // Update or create call record
       await prisma.call.upsert({
@@ -67,7 +90,6 @@ export async function POST(request: Request) {
           stereoRecordingUrl: body.message.artifact.stereoRecordingUrl,
           summary: body.message.analysis?.summary,
           cost,
-          final_cost,
           costBreakdown: costBreakdownJson,
           analysis: analysisJson,
           messages: messagesJson,
@@ -76,33 +98,35 @@ export async function POST(request: Request) {
           startedAt: new Date(body.message.startedAt),
           endedAt: body.message.endedAt ? new Date(body.message.endedAt) : null,
           endedReason: body.message.endedReason,
+          durationInSeconds: body.message.durationSeconds,
           clientId: 1, // Default client ID since we don't have it in the webhook
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         update: {
-          callStatus: body.message.call.status,
           transcript: body.message.artifact.transcript,
           recordingUrl: body.message.artifact.recordingUrl,
           stereoRecordingUrl: body.message.artifact.stereoRecordingUrl,
           summary: body.message.analysis?.summary,
           cost,
-          final_cost,
           costBreakdown: costBreakdownJson,
           analysis: analysisJson,
           messages: messagesJson,
           endedAt: body.message.endedAt ? new Date(body.message.endedAt) : null,
           endedReason: body.message.endedReason,
+          durationInSeconds: body.message.durationSeconds,
           updatedAt: new Date(),
         }
       });
 
+      const final_duration_in_seconds = body.message.durationSeconds;
+
       // Transaction to update client balance
-      if(final_cost && client){
+      if(final_duration_in_seconds && client){
         // First create the transaction record
         const transaction = await prisma.transaction.create({
           data: {
-            amount: final_cost,
+            seconds: new Prisma.Decimal(final_duration_in_seconds),
             type: "DEBIT",
             clientId: client.client.id,
             reason: "Call Cost",
@@ -115,7 +139,11 @@ export async function POST(request: Request) {
           // Try to update client balance
           await prisma.client.update({
             where: { id: client.client.id },
-            data: { balance: { decrement: final_cost } }
+            data: {
+              balanceInSeconds: {
+                decrement: new Prisma.Decimal(final_duration_in_seconds)
+              }
+            }
           });
 
           // If balance update succeeds, mark both transaction and call as processed
@@ -145,16 +173,6 @@ export async function POST(request: Request) {
         }
       }
     }
-    
-    // Store the entire request in logs
-    await prisma.log.create({
-      data: {
-        event: 'vapi_full_log',
-        description: JSON.stringify(body),
-        vapiCallId: body.message.call.id
-      }
-    });
-    console.log("Vapi Called a POST Req")
 
 
     // Return response in Vapi's expected format
@@ -165,16 +183,36 @@ export async function POST(request: Request) {
       }]
     });
   } catch (error) {
-    console.error('Vapi webhook error:', error);
-    
-    // Log the error
-    await prisma.log.create({
-      data: {
-        event: 'vapi_error',
-        description: JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' })
-      }
+    console.error('=== VAPI Webhook Error ===');
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      error // Full error object
     });
+    
+    // Log the error in a structured way
+    try {
+      await prisma.log.create({
+        data: {
+          event: 'vapi_webhook_error',
+          description: JSON.stringify({
+            error: error instanceof Error ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack
+            } : String(error),
+            timestamp: new Date().toISOString()
+          }),
+          vapiCallId: null // since we might not have this in error case
+        }
+      });
+    } catch (logError) {
+      console.error('Failed to log error to database:', logError);
+    }
 
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return new NextResponse('Internal Server Error', { status: 500 });
+  } finally {
+    console.log('=== VAPI Webhook Request Ended ===');
   }
 } 

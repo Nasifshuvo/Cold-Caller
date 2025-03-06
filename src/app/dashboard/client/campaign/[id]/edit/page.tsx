@@ -13,7 +13,7 @@ interface Campaign {
   status: string;
   totalLeads: number;
   processedLeads: number;
-  estimatedCost: number;
+  estimatedMinutes: number;
   leads: Lead[];
 }
 
@@ -25,7 +25,8 @@ export default function EditCampaign() {
   const [leadData, setLeadData] = useState<LeadsData[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [estimatedCost, setEstimatedCost] = useState(0);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(0);
+  const [estimatedMinutesPerCall, setEstimatedMinutesPerCall] = useState(3);
 
   const fetchCampaign = useCallback(async () => {
     if (!params?.id) return;
@@ -39,11 +40,10 @@ export default function EditCampaign() {
       setCampaignName(data.name);
       // Initialize leadData with existing leads
       const initialLeads = data.leads?.map((lead: Lead) => ({
-        phoneNumber: lead.phoneNumber,
-        name: lead.name || null
+        phoneNumber: lead.phoneNumber
       })) || [];
       setLeadData(initialLeads);
-      setEstimatedCost(parseFloat(data.estimatedCost));
+      setEstimatedMinutes(parseFloat(data.estimatedMinutes));
     } catch (error) {
       console.error('Error fetching campaign:', error);
       alert('Failed to fetch campaign');
@@ -51,6 +51,22 @@ export default function EditCampaign() {
       setLoading(false);
     }
   }, [params?.id]);
+
+  // Fetch client settings
+  useEffect(() => {
+    const fetchClientDetails = async () => {
+      try {
+        const response = await fetch('/api/clients/me');
+        const data = await response.json();
+        if (response.ok) {
+          setEstimatedMinutesPerCall(parseFloat(data.estimatedMinutesPerCall));
+        }
+      } catch (error) {
+        console.error('Error fetching client details:', error);
+      }
+    };
+    fetchClientDetails();
+  }, []);
 
   useEffect(() => {
     if (!params?.id) {
@@ -60,11 +76,10 @@ export default function EditCampaign() {
     fetchCampaign();
   }, [params?.id, router, fetchCampaign]);
 
-  // Calculate estimated cost whenever leadData changes
+  // Calculate estimated minutes whenever leadData changes
   useEffect(() => {
-    const costPerCall = 2;
-    setEstimatedCost(leadData.length * costPerCall);
-  }, [leadData]);
+    setEstimatedMinutes(leadData.length * estimatedMinutesPerCall);
+  }, [leadData, estimatedMinutesPerCall]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +101,7 @@ export default function EditCampaign() {
           name: campaignName,
           totalLeads: leadData.length,
           leads: leadData,
-          estimatedCost,
+          estimatedMinutes,
         }),
       });
 
@@ -174,8 +189,8 @@ export default function EditCampaign() {
                     <p className="text-2xl font-bold text-gray-900">{leadData.length}</p>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Estimated Campaign Cost</h3>
-                    <p className="text-2xl font-bold text-gray-900">${estimatedCost.toFixed(2)}</p>
+                    <h3 className="text-sm font-medium text-gray-500">Estimated Campaign Duration</h3>
+                    <p className="text-2xl font-bold text-gray-900">{estimatedMinutes} minutes</p>
                   </div>
                 </div>
 
@@ -185,14 +200,12 @@ export default function EditCampaign() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Name</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Phone</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {leadData.map((lead, index) => (
                           <tr key={index}>
-                            <td className="px-4 py-2 text-sm text-gray-900">{lead.name || 'N/A'}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">{lead.phoneNumber}</td>
                           </tr>
                         ))}

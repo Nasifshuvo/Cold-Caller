@@ -14,8 +14,11 @@ async function initializeVapiConfig() {
     try {
       const session = await getServerSession(authOptions);
       
+      console.log('Debug - Session:', session); // Debug session
+      
       // If no session, initialize with empty config
       if (!session?.user?.id) {
+        console.log('Debug - No session user ID found'); // Debug session check
         await vapiConfig.initialize({
           apiKey: '',
           defaultCallSettings: {
@@ -33,10 +36,18 @@ async function initializeVapiConfig() {
         }
       });
 
-    if (!client || !client.vapiKey || !client.vapiAssistantId || !client.vapiPhoneNumberId) {
-      console.warn('No active Vapi settings found');
-      return;
-    }
+      console.log('Debug - Client data:', {
+        found: !!client,
+        hasVapiKey: !!client?.vapiKey,
+        hasAssistantId: !!client?.vapiAssistantId,
+        hasPhoneId: !!client?.vapiPhoneNumberId,
+        clientData: client
+      }); // Debug client data
+
+      if (!client || !client.vapiKey || !client.vapiAssistantId || !client.vapiPhoneNumberId) {
+        console.warn('No active Vapi settings found');
+        return false;
+      }
 
       await vapiConfig.initialize({
         apiKey: client.vapiKey,
@@ -47,6 +58,7 @@ async function initializeVapiConfig() {
           transcriptionEnabled: true,
         }
       });
+      console.log('Debug - Vapi initialized successfully'); // Debug successful initialization
       return true;
     } catch (error) {
       console.error('Failed to initialize Vapi config:', error);
@@ -77,18 +89,20 @@ export default async function ClientLayout({
     }
 
     return (
-      <div className="flex h-screen bg-gray-100">
+      <div className="flex flex-col h-screen bg-gray-100">
         {!isConfigured && (
-          <div className="bg-yellow-100 p-4">
+          <div className="bg-yellow-100 p-4 w-full">
             Warning: Vapi not configured
           </div>
         )}
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-            {children}
-          </main>
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Header />
+            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+              {children}
+            </main>
+          </div>
         </div>
       </div>
     );

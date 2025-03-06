@@ -36,10 +36,10 @@ export async function GET(
       include: {
         leads: {
           include: {
-            calls: true
-          }
-        }
-      }
+            calls: true,
+          },
+        },
+      },
     });
 
     if (!campaign) {
@@ -70,8 +70,8 @@ export async function GET(
       'Status': campaign.status,
       'Total Leads': campaign.totalLeads,
       'Processed Leads': campaign.processedLeads,
-      'Estimated Cost': `$${campaign.estimatedCost.toString()}`,
-      'Actual Cost': `$${campaign.actualCost.toString()}`,
+      'Estimated Seconds': campaign.estimatedSeconds || '0',
+      'Actual Seconds': campaign.actualSeconds || '0',
       'Created At': new Date(campaign.createdAt).toLocaleString(),
       'Updated At': new Date(campaign.updatedAt).toLocaleString()
     }];

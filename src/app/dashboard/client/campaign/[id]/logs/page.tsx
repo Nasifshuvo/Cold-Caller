@@ -54,6 +54,7 @@ interface Call {
   webCallUrl?: string;
   costDeducted: boolean;
   campaignId?: number;
+  durationInSeconds?: number;
 }
 
 interface Campaign {
@@ -62,6 +63,8 @@ interface Campaign {
   status: string;
   totalLeads: number;
   processedLeads: number;
+  estimatedMinutes: number;
+  actualMinutes: number;
 }
 
 function Modal({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) {
@@ -151,26 +154,6 @@ export default function CampaignLogs() {
     }
   }, [isClient]);
 
-  const formatCost = useCallback((cost: string | number | undefined) => {
-    if (!cost || !isClient) return '';
-    try {
-      const numericCost = typeof cost === 'string' ? parseFloat(cost) : cost;
-      return `$${numericCost.toFixed(2)}`;
-    } catch {
-      return '';
-    }
-  }, [isClient]);
-
-  const calculateDuration = useCallback((endDate?: string, startDate?: string) => {
-    if (!isClient || !endDate || !startDate) return '';
-    try {
-      const duration = Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 1000);
-      return `${duration}s`;
-    } catch {
-      return '';
-    }
-  }, [isClient]);
-
   const getStatusColor = useCallback((status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -195,7 +178,9 @@ export default function CampaignLogs() {
         name: campaign.name,
         status: campaign.status,
         totalLeads: campaign.totalLeads,
-        processedLeads: campaign.processedLeads
+        processedLeads: campaign.processedLeads,
+        estimatedMinutes: campaign.estimatedMinutes,
+        actualMinutes: campaign.actualMinutes
       };
       
       // Prepare calls data
@@ -203,8 +188,8 @@ export default function CampaignLogs() {
         phoneNumber: call.customerNumber,
         status: call.callStatus,
         startedAt: call.createdAt,
-        duration: call.endedAt ? calculateDuration(call.endedAt, call.createdAt) : '',
-        cost: call.cost ? formatCost(call.cost) : '',
+        duration: call.durationInSeconds ? `${call.durationInSeconds}s` : '',
+        minutes: call.durationInSeconds ? (call.durationInSeconds / 60).toFixed(2) : '',
         response: call.analysis?.summary || call.response || call.endedReason || ''
       }));
       
@@ -212,18 +197,25 @@ export default function CampaignLogs() {
       const csvContent = [
         // Campaign section
         ['Campaign Details'],
-        ['Name', 'Status', 'Total Leads', 'Processed Leads'],
-        [campaignData.name, campaignData.status, campaignData.totalLeads, campaignData.processedLeads],
+        ['Name', 'Status', 'Total Leads', 'Processed Leads', 'Estimated Minutes', 'Actual Minutes'],
+        [
+          campaignData.name,
+          campaignData.status,
+          campaignData.totalLeads,
+          campaignData.processedLeads,
+          campaignData.estimatedMinutes,
+          campaignData.actualMinutes
+        ],
         [], // Empty line for separation
         // Calls section
         ['Calls'],
-        ['Phone Number', 'Status', 'Started At', 'Duration', 'Cost', 'Response'],
+        ['Phone Number', 'Status', 'Started At', 'Duration', 'Minutes Used', 'Response'],
         ...callsData.map(call => [
           call.phoneNumber,
           call.status,
           call.startedAt,
           call.duration,
-          call.cost,
+          call.minutes,
           call.response
         ])
       ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -240,7 +232,7 @@ export default function CampaignLogs() {
     } finally {
       setExporting(false);
     }
-  }, [campaign, calls, calculateDuration, formatCost, exporting]);
+  }, [campaign, calls, exporting]);
 
   if (loading) {
     return (
@@ -291,7 +283,7 @@ export default function CampaignLogs() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Progress</p>
-                <p className="font-medium">{campaign.processedLeads}/{campaign.totalLeads} calls completed</p>
+                <p className="font-medium">{campaign.processedLeads}/{campaign.totalLeads} calls processed</p>
               </div>
             </div>
           </div>
@@ -309,7 +301,7 @@ export default function CampaignLogs() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Started At</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cost</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Minutes Used</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Response</th>
                 </tr>
               </thead>
@@ -326,10 +318,10 @@ export default function CampaignLogs() {
                       {isClient ? formatDate(call.createdAt) : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {isClient ? calculateDuration(call.endedAt, call.createdAt) : ''}
+                      {isClient ? (call.durationInSeconds ? `${call.durationInSeconds}s` : '') : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {isClient ? formatCost(call.cost) : ''}
+                      {isClient ? (call.durationInSeconds ? (call.durationInSeconds / 60).toFixed(2) : '') : ''}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <button 

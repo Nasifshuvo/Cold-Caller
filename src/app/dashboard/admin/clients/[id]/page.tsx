@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { use } from 'react';
 import { Client } from '@/types/client';
+import { formatBalance } from '@/lib/utils/format';
 
 interface Transaction {
   id: number;
-  amount: string;
+  seconds: number;
   type: 'CREDIT' | 'DEBIT';
   createdAt: string;
 }
@@ -26,7 +27,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
   const [isAddBalanceModalOpen, setIsAddBalanceModalOpen] = useState(false);
   const [isVapiModalOpen, setIsVapiModalOpen] = useState(false);
   const [isEditingCost, setIsEditingCost] = useState(false);
-  const [estimatedCost, setEstimatedCost] = useState<string>('');
+  const [estimatedDuration, setEstimatedDuration] = useState('3.00');
 
   const fetchClientDetails = useCallback(async () => {
     try {
@@ -57,6 +58,12 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
     fetchClientDetails();
     fetchTransactions();
   }, [fetchClientDetails, fetchTransactions]);
+
+  useEffect(() => {
+    if (client?.estimatedMinutesPerCall) {
+      setEstimatedDuration(client.estimatedMinutesPerCall.toString());
+    }
+  }, [client]);
 
   const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -186,21 +193,29 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
   };
 
   const handleUpdateCost = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`/api/clients/${clientId}/estimated-cost`, {
+      const response = await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          estimatedCallCost: parseFloat(estimatedCost) 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estimatedMinutesPerCall: parseFloat(estimatedDuration)
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update cost');
-      
-      await fetchClientDetails();
+      if (!response.ok) {
+        throw new Error('Failed to update estimated duration');
+      }
+
+      // Refresh the page to show updated data
+      router.refresh();
       setIsEditingCost(false);
     } catch (error) {
-      console.error('Failed to update estimated cost:', error);
+      console.error('Error updating estimated duration:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,7 +243,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
             <Input
               label="Name"
               name="name"
-              defaultValue={client.name}
+              defaultValue={client.name || ''}
               required
             />
             <Input
@@ -271,16 +286,16 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Balance</h3>
-                <p>${Number(client.balance).toFixed(2)}</p>
+                <p>{formatBalance(client.balanceInSeconds.toString())}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Status</h3>
                 <span className={`px-2 py-1 text-sm rounded-full ${
-                  client.user.active 
+                  client.active 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-red-100 text-red-800'
                 }`}>
-                  {client.user.active ? 'Active' : 'Inactive'}
+                  {client.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
@@ -294,9 +309,9 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
               </Button>
               <Button 
                 onClick={handleToggleActive}
-                variant={client.user.active ? 'danger' : 'primary'}
+                variant={client.active ? 'danger' : 'primary'}
               >
-                {client.user.active ? 'Deactivate' : 'Activate'}
+                {client.active ? 'Deactivate' : 'Activate'}
               </Button>
             </div>
           </div>
@@ -331,7 +346,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      {/* Call Cost Section */}
+      {/* Call Duration Section */}
       <div className="bg-white shadow rounded-lg p-6 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Call Settings</h2>
@@ -343,15 +358,15 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
         {isEditingCost ? (
           <div className="space-y-4">
             <Input
-              label="Estimated Call Cost"
-              name="estimatedCost"
+              label="Estimated Call Duration (minutes)"
+              name="estimatedDuration"
               type="number"
               step="0.01"
               min="0"
               required
-              placeholder="0.00"
-              value={estimatedCost}
-              onChange={(e) => setEstimatedCost(e.target.value)}
+              placeholder="3.00"
+              value={estimatedDuration}
+              onChange={(e) => setEstimatedDuration(e.target.value)}
             />
             <div className="flex justify-end space-x-3">
               <Button
@@ -373,8 +388,8 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
         ) : (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-medium text-gray-500">Estimated Call Cost</h3>
-              <p className="mt-1">${Number(client.estimatedCallCost).toFixed(2)}</p>
+              <h3 className="text-sm font-medium text-gray-500">Estimated Call Duration</h3>
+              <p className="mt-1">{formatBalance(Number(client.estimatedMinutesPerCall) * 60)}</p>
             </div>
           </div>
         )}
@@ -409,7 +424,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      ${Number(transaction.amount).toFixed(2)}
+                      {formatBalance(Number(transaction.seconds))}
                     </td>
                   </tr>
                 ))}
@@ -425,16 +440,15 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
       {isAddBalanceModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Balance</h2>
+            <h2 className="text-xl font-bold mb-4">Add Minutes</h2>
             <form onSubmit={handleAddBalance} className="space-y-4">
               <Input
-                label="Amount"
+                label="Minutes"
                 name="amount"
                 type="number"
-                step="0.01"
-                min="0"
+                min="1"
                 required
-                placeholder="0.00"
+                placeholder="Enter minutes to add"
               />
               <div className="flex justify-end space-x-3">
                 <Button
@@ -445,7 +459,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
                   Cancel
                 </Button>
                 <Button type="submit" isLoading={loading}>
-                  Add Balance
+                  Add Minutes
                 </Button>
               </div>
             </form>

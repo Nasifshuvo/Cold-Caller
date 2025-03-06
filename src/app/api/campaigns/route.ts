@@ -74,7 +74,14 @@ export async function POST(request: Request) {
     const clientId = user.client.id;
 
     const body = await request.json();
-    const { name, type, status, totalLeads, leads, estimatedCost } = body;
+    const { name, type, status, totalLeads, leads, estimatedSeconds } = body;
+
+    if (!name || !type || !leads) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Missing required fields: name, type, and leads are required' 
+      }, { status: 400 });
+    }
 
     console.log('Request body:', body);
 
@@ -83,16 +90,16 @@ export async function POST(request: Request) {
       data: {
         name,
         type,
-        status,
-        totalLeads,
-        estimatedCost: new Prisma.Decimal(estimatedCost || 0),
+        status: status || 'Draft',
+        totalLeads: totalLeads || leads.length,
+        processedLeads: 0,
+        estimatedSeconds: new Prisma.Decimal(estimatedSeconds || 0),
+        actualSeconds: new Prisma.Decimal(0),
         clientId,
       },
     });
 
     console.log('Campaign created:', campaign);
-    console.log('Leads data received:', leads);
-    console.log('Leads array length:', leads?.length);
 
     // Create or update leads and their calls
     if (leads && leads.length > 0) {
@@ -103,106 +110,86 @@ export async function POST(request: Request) {
         where: {
           clientId,
           phoneNumber: {
-            in: leads.map((lead: LeadsData) => {
-              console.log('Processing lead:', lead);
-              return lead.phoneNumber;
-            })
+            in: leads.map((lead: LeadsData) => lead.phoneNumber)
           }
         }
       });
 
-      console.log('Existing leads found:', existingLeads);
+      console.log('Existing leads found:', existingLeads.length);
       
       // Create a map of phone numbers to existing leads
       const phoneToLeadMap = new Map(existingLeads.map(lead => [lead.phoneNumber, lead]));
-      console.log('Phone to lead map:', Array.from(phoneToLeadMap.entries()));
 
-      // Update existing leads and store updated leads
+      // Update existing leads
       const updatedLeads = await Promise.all(existingLeads.map(async lead => {
-        const updatedLead = await prisma.lead.update({
+        return prisma.lead.update({
           where: { id: lead.id },
           data: {
             campaignId: campaign.id,
             callStatus: 'Not Initiated'
           }
         });
-        console.log('Updated lead:', updatedLead);
-        return updatedLead;
       }));
 
-      // Create new leads and store created leads
+      // Create new leads
       const newLeadsData = leads.filter((lead: LeadsData) => !phoneToLeadMap.has(lead.phoneNumber));
-      console.log('New leads to create:', newLeadsData);
+      console.log('New leads to create:', newLeadsData.length);
       
       const createdLeads = await Promise.all(newLeadsData.map(async (lead: LeadsData) => {
-        const newLead = await prisma.lead.create({
+        return prisma.lead.create({
           data: {
             clientId,
             phoneNumber: lead.phoneNumber,
-            name: lead.name || null,
             callStatus: 'Not Initiated',
             campaignId: campaign.id
           }
         });
-        console.log('Created new lead:', newLead);
-        return newLead;
       }));
 
-      // Combine all leads (both updated and new)
+      // Combine all leads
       const allLeads = [...updatedLeads, ...createdLeads];
-      console.log('All leads processed:', allLeads);
+      console.log('Total leads processed:', allLeads.length);
 
-      // Now create calls for all leads
-      console.log('Creating calls for all leads...');
-      try {
+      // Create calls for all leads
+      if (allLeads.length > 0) {
+        const callsData = allLeads.map(lead => ({
+          clientId: clientId,
+          callStatus: 'Pending',
+          customerNumber: lead.phoneNumber,
+          type: 'outboundPhoneCall',
+          campaignId: campaign.id,
+          leadId: lead.id
+        }));
+
         const createdCalls = await prisma.call.createMany({
-          data: allLeads.map(lead => ({
-            clientId: clientId,
-            callStatus: 'Pending',
-            customerNumber: lead.phoneNumber,
-            type: 'outboundPhoneCall',
-            campaignId: campaign.id,
-            leadId: lead.id
-          }))
+          data: callsData
         });
 
         console.log(`Successfully created ${createdCalls.count} calls`);
-      } catch (err) {
-        console.error('Detailed error in call creation:', {
-          error: err,
-          errorMessage: err instanceof Error ? err.message : 'Unknown error',
-          errorStack: err instanceof Error ? err.stack : undefined,
-          errorName: err instanceof Error ? err.name : 'Unknown',
-          meta: err instanceof Prisma.PrismaClientKnownRequestError ? err.meta : undefined,
-          timestamp: new Date().toISOString()
-        });
-        throw err;
       }
-    } else {
-      console.log('No leads provided or leads array is empty');
     }
 
     // Return the created campaign with additional info
     const campaignResponse = {
-      id: campaign.id,
-      name: campaign.name,
-      type: campaign.type,
-      status: campaign.status,
-      totalLeads: campaign.totalLeads,
-      processedLeads: campaign.processedLeads,
-      estimatedCost: parseFloat(campaign.estimatedCost.toString()),
-      actualCost: parseFloat(campaign.actualCost.toString()),
-      createdAt: campaign.createdAt,
-      updatedAt: campaign.updatedAt,
-      clientId: campaign.clientId,
-      message: 'Campaign created successfully with leads and calls'
+      success: true,
+      data: {
+        id: campaign.id,
+        name: campaign.name,
+        type: campaign.type,
+        status: campaign.status,
+        totalLeads: campaign.totalLeads,
+        processedLeads: campaign.processedLeads,
+        estimatedSeconds: campaign.estimatedSeconds.toString(),
+        actualSeconds: campaign.actualSeconds.toString(),
+        createdAt: campaign.createdAt,
+        updatedAt: campaign.updatedAt,
+        clientId: campaign.clientId
+      },
+      message: 'Campaign created successfully'
     };
-
-    console.log('Campaign response:', campaignResponse);
 
     return NextResponse.json(campaignResponse);
   } catch (error) {
-    console.log('Error creating campaign:', error);
     console.error('Error creating campaign:', error);
     
     // Handle Prisma errors
@@ -218,7 +205,8 @@ export async function POST(request: Request) {
     // Handle other errors
     return NextResponse.json({ 
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { 
       status: 500 
     });
