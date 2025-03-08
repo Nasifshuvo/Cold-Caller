@@ -22,8 +22,9 @@ export default function AddCampaign() {
         const response = await fetch('/api/clients/me');
         const data = await response.json();
         if (response.ok) {
-          setClientMinutes(data.minutes);
-          setEstimatedMinutesPerCall(parseFloat(data.estimatedMinutesPerCall));
+          // Convert balanceInSeconds to minutes
+          setClientMinutes(data.balanceInSeconds ? Math.floor(Number(data.balanceInSeconds) / 60) : 0);
+          setEstimatedMinutesPerCall(parseFloat(data.estimatedMinutesPerCall || '3'));
         }
       } catch (error) {
         console.error('Error fetching client details:', error);
@@ -178,7 +179,7 @@ export default function AddCampaign() {
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="text-lg font-semibold">Campaign Summary</h2>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Total Phone Numbers</h3>
                 <p className="text-2xl font-bold text-gray-900">{leadData.length}</p>
@@ -187,7 +188,22 @@ export default function AddCampaign() {
                 <h3 className="text-sm font-medium text-gray-500">Estimated Campaign Duration</h3>
                 <p className="text-2xl font-bold text-gray-900">{estimatedMinutes} minutes</p>
               </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Your Current Balance</h3>
+                <p className={`text-2xl font-bold ${clientMinutes < estimatedMinutes ? 'text-red-600' : 'text-green-600'}`}>
+                  {clientMinutes} minutes
+                </p>
+              </div>
             </div>
+
+            {clientMinutes < estimatedMinutes && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
+                <p className="text-sm text-red-600 font-medium">
+                  Warning: Your current balance is insufficient for this campaign.
+                  You need {estimatedMinutes - clientMinutes} more minutes.
+                </p>
+              </div>
+            )}
 
             <div className="mt-4">
               <h3 className="text-sm font-medium text-gray-500 mb-2">Phone Numbers</h3>
