@@ -185,7 +185,7 @@ export async function POST(
               id: call.id
             },
             data: {
-              callStatus: 'Initiated',
+              callStatus: 'initiated',
               vapiCallId: callResponse.id,
               startedAt: new Date(callResponse.createdAt),
               type: callResponse.type,

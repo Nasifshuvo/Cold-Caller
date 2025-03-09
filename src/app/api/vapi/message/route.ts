@@ -1,6 +1,8 @@
 import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
+import { CallStatus } from '@/types/callStatus';
+import { checkAndUpdateCampaignStatus } from '@/lib/utils/campaignStatus';
 
 export async function POST(request: Request) {
   console.log('=== VAPI Webhook Request Started ===');
@@ -77,14 +79,14 @@ export async function POST(request: Request) {
       const cost = body.message.cost ? new Prisma.Decimal(body.message.cost) : null;
 
       // Update or create call record
-      await prisma.call.upsert({
+      const updatedCall = await prisma.call.upsert({
         where: {
           vapiCallId: callId
         },
         create: {
           vapiCallId: callId,
           type: body.message.call.type,
-          callStatus: body.message.call.status,
+          callStatus: CallStatus.COMPLETED,
           transcript: body.message.artifact.transcript,
           recordingUrl: body.message.artifact.recordingUrl,
           stereoRecordingUrl: body.message.artifact.stereoRecordingUrl,
@@ -99,11 +101,11 @@ export async function POST(request: Request) {
           endedAt: body.message.endedAt ? new Date(body.message.endedAt) : null,
           endedReason: body.message.endedReason,
           durationInSeconds: body.message.durationSeconds,
-          clientId: 1, // Default client ID since we don't have it in the webhook
+          clientId: client?.client?.id || 1,
           createdAt: new Date(),
-          updatedAt: new Date(),
         },
         update: {
+          callStatus: CallStatus.COMPLETED,
           transcript: body.message.artifact.transcript,
           recordingUrl: body.message.artifact.recordingUrl,
           stereoRecordingUrl: body.message.artifact.stereoRecordingUrl,
@@ -115,9 +117,29 @@ export async function POST(request: Request) {
           endedAt: body.message.endedAt ? new Date(body.message.endedAt) : null,
           endedReason: body.message.endedReason,
           durationInSeconds: body.message.durationSeconds,
-          updatedAt: new Date(),
+        },
+        include: {
+          lead: true
         }
       });
+
+      console.log("Call record updated", updatedCall.id);
+
+      // If the call has a lead associated, update its call status
+      if (updatedCall.leadId) {
+        await prisma.lead.update({
+          where: { id: updatedCall.leadId },
+          data: {
+            callStatus: CallStatus.COMPLETED
+          }
+        });
+      }
+
+      // Check and update campaign status if there's a campaign associated with this call or lead
+      const campaignId = updatedCall.campaignId || updatedCall.lead?.campaignId;
+      if (campaignId) {
+        await checkAndUpdateCampaignStatus(campaignId);
+      }
 
       const final_duration_in_seconds = body.message.durationSeconds;
 
@@ -173,7 +195,6 @@ export async function POST(request: Request) {
         }
       }
     }
-
 
     // Return response in Vapi's expected format
     return NextResponse.json({

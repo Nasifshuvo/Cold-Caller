@@ -27,7 +27,7 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
   const [isAddBalanceModalOpen, setIsAddBalanceModalOpen] = useState(false);
   const [isVapiModalOpen, setIsVapiModalOpen] = useState(false);
   const [isEditingCost, setIsEditingCost] = useState(false);
-  const [estimatedDuration, setEstimatedDuration] = useState('3.00');
+  const [estimatedDuration, setEstimatedDuration] = useState(client?.estimatedMinutesPerCall?.toString() || '0.00');
 
   const fetchClientDetails = useCallback(async () => {
     try {
@@ -195,15 +195,27 @@ export default function ClientDetailsPage({ params }: { params: Promise<{ id: st
   const handleUpdateCost = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/clients/${clientId}`, {
+      const url = `/api/clients/${clientId}/estimated-cost`;
+      console.log("URL:", url);
+      
+      const minutes = parseFloat(estimatedDuration);
+      console.log("Sending estimated minutes:", minutes);
+      
+      const payload = {
+        estimatedMinutesPerCall: minutes
+      };
+      console.log("Payload:", payload);
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          estimatedMinutesPerCall: parseFloat(estimatedDuration)
-        }),
+        body: JSON.stringify(payload),
       });
+      const data = await response.json();
+      console.log("Response:", data);
+      setClient(data);
 
       if (!response.ok) {
         throw new Error('Failed to update estimated duration');

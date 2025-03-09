@@ -1,11 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
 export async function PUT(
-  request: Request,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { params }: any
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,20 +12,24 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await context.params;
+    const clientId = parseInt(id);
     const body = await request.json();
 
+
     const client = await prisma.client.update({
-      where: { id: parseInt(params.id) },
+      where: { id: clientId },
       data: { 
-        estimatedCallCost: body.estimatedCallCost,
+        estimatedMinutesPerCall: body.estimatedMinutesPerCall,
       },
     });
+    console.log("Client updated", client);
 
     return NextResponse.json(client);
   } catch (error) {
-    console.error('Failed to update estimated cost:', error);
+    console.error('Failed to update estimated duration:', error);
     return NextResponse.json(
-      { error: 'Failed to update estimated cost' }, 
+      { error: 'Failed to update estimated call duration' }, 
       { status: 500 }
     );
   }
