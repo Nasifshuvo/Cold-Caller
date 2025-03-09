@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { CallStatus } from '@/types/callStatus';
 
 export async function GET() {
   try {
@@ -25,14 +26,23 @@ export async function GET() {
       where: { clientId },
     });
     
-    // Get only successful/ended calls
+    // Log existing call statuses to debug
+    console.log("Fetching call statistics for client:", clientId);
+    
+    // Get all completed calls
     const calls = await prisma.call.findMany({
       where: { 
         clientId,
-        // Filter for completed calls
-        callStatus: 'Completed'
+        callStatus: CallStatus.COMPLETED, // Use the enum value
+        // Only include calls with a duration
+        durationInSeconds: { 
+          not: null,
+          gt: 0
+        }
       },
     });
+    
+    console.log(`Found ${calls.length} completed calls`);
     
     // Calculate statistics
     const totalCampaigns = campaigns.length;
@@ -42,9 +52,12 @@ export async function GET() {
     // Sum up the durations
     calls.forEach(call => {
       if (call.durationInSeconds) {
+        console.log(`Call ID: ${call.id}, Duration: ${call.durationInSeconds}s, Status: ${call.callStatus}`);
         totalDuration += call.durationInSeconds;
       }
     });
+    
+    console.log(`Total duration: ${totalDuration}s`);
     
     return NextResponse.json({
       totalCampaigns,
