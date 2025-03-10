@@ -162,7 +162,8 @@ export async function POST(request: Request) {
             type: "DEBIT",
             clientId: client.client.id,
             reason: "Call Cost",
-            reference: updatedCall.customerNumber,
+            reference: campaignId?.toString() || "-",
+            phoneNumber: updatedCall.customerNumber,
             processed: false // Initially set to false
           }
         });

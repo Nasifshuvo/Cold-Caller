@@ -59,16 +59,17 @@ model Client {
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  type      String
-  clientId  Int
-  createdAt DateTime @default(now())
-  processed Boolean  @default(false)
-  reason    String?
-  reference String?
-  seconds   Decimal  @default(0.00) @db.Decimal(10, 2)
-  updatedAt DateTime @updatedAt
-  client    Client   @relation(fields: [clientId], references: [id])
+  id          Int      @id @default(autoincrement())
+  type        String
+  clientId    Int
+  createdAt   DateTime @default(now())
+  processed   Boolean  @default(false)
+  reason      String?
+  reference   String?
+  seconds     Decimal  @default(0.00) @db.Decimal(10, 2)
+  updatedAt   DateTime @updatedAt
+  phoneNumber String?
+  client      Client   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
 }
