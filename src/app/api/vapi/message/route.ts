@@ -54,11 +54,39 @@ export async function POST(request: Request) {
     console.log("Vapi Called a POST Req")
 
     if(type === "status-update"){
-      // Update the call record with the status from body.message.status
-      await prisma.call.update({
-        where: { vapiCallId: body.message.call.id },
-        data: { callStatus: body.message.status }
-      });
+      if(body.message.status === "ended"){
+        const endedReason = body.message.endedReason || null;
+        await prisma.call.update({
+          where: { vapiCallId: body.message.call.id },
+          data: { 
+            callStatus: body.message.status,
+            endedReason: endedReason,
+            
+          }
+        });
+        if(endedReason === "customer-did-not-answer"){
+          const campaignId = await prisma.call.findUnique({
+            where: { vapiCallId: body.message.call.id },
+            select: {
+              campaignId: true
+            }
+          });
+          if(campaignId){
+            await checkAndUpdateCampaignStatus(campaignId.campaignId);
+          }
+        }
+
+      }else{
+        await prisma.call.update({
+          where: { vapiCallId: body.message.call.id },
+          data: { 
+            callStatus: body.message.status
+          }
+        });
+      }
+      
+     
+      
     }else if(type === "end-of-call-report") {
       const callId = body.message.call.id;
 
