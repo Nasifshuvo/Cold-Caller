@@ -3,8 +3,7 @@ import { useEffect, useState, Suspense, useCallback } from "react";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 import { 
-  PlayIcon, 
-  ArrowDownTrayIcon, 
+  PlayIcon,  
   ClipboardDocumentListIcon,
   PencilSquareIcon
 } from "@heroicons/react/24/outline";
@@ -27,11 +26,10 @@ interface CampaignTableProps {
   campaigns: Campaign[];
   getStatusColor: (status: string) => string;
   formatDate: (date: string) => string;
-  handleExport: (id: number) => Promise<void>;
   handleRunCampaign: (id: number) => Promise<void>;
 }
 
-const CampaignTable = dynamic(() => Promise.resolve(({ campaigns, getStatusColor, formatDate, handleExport, handleRunCampaign }: CampaignTableProps) => (
+const CampaignTable = dynamic(() => Promise.resolve(({ campaigns, getStatusColor, formatDate, handleRunCampaign }: CampaignTableProps) => (
   <table className="min-w-full divide-y divide-gray-200">
     <thead className="bg-gray-50">
       <tr>
@@ -105,15 +103,7 @@ const CampaignTable = dynamic(() => Promise.resolve(({ campaigns, getStatusColor
                   </button>
                 </>
               )}
-              {campaign.status === 'Completed' && (
-                <button
-                  onClick={() => handleExport(campaign.id)}
-                  className="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-md transition-colors duration-200"
-                >
-                  <ArrowDownTrayIcon className="w-4 h-4 mr-1.5" />
-                  <span>Export</span>
-                </button>
-              )}
+              
               <Link
                 href={`/dashboard/client/campaign/${campaign.id}/logs`}
                 className="inline-flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
@@ -173,25 +163,6 @@ export default function AllCampaigns() {
     }
   };
 
-  const handleExport = useCallback(async (campaignId: number) => {
-    try {
-      const response = await fetch(`/api/campaigns/${campaignId}/export`);
-      const blob = await response.blob();
-      
-      if (isClient) {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `campaign-${campaignId}-export.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    } catch (error) {
-      console.error('Error exporting campaign:', error);
-    }
-  }, [isClient]);
 
   const formatDate = useCallback((dateString: string) => {
     if (!dateString || !isClient) return '';
@@ -242,7 +213,6 @@ export default function AllCampaigns() {
             campaigns={campaigns} 
             getStatusColor={getStatusColor} 
             formatDate={formatDate}
-            handleExport={handleExport}
             handleRunCampaign={handleRunCampaign}
           />
         </Suspense>
