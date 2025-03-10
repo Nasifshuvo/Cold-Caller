@@ -147,12 +147,6 @@ export async function POST(
           continue;
         }
 
-        console.log('Processing call:', {
-          callId: call.id,
-          customerNumber: call.customerNumber,
-          leadId: call.leadId,
-          timestamp: new Date().toISOString()
-        });
         
         // Initialize VAPI for each call
         console.log('Initializing VAPI configuration...');
@@ -163,11 +157,6 @@ export async function POST(
           phoneNumberId: user.client.vapiPhoneNumberId,
         });
 
-        console.log('Making VAPI call for:', {
-          callId: call.id,
-          customerNumber: call.customerNumber,
-          timestamp: new Date().toISOString()
-        });
 
         const callResponse = await createOutboundCall(call.customerNumber);
         console.log('VAPI Call Response:', {
@@ -194,12 +183,6 @@ export async function POST(
             }
           });
 
-          console.log('Call record updated:', {
-            callId: updatedCall.id,
-            status: updatedCall.callStatus,
-            vapiCallId: updatedCall.vapiCallId,
-            timestamp: new Date().toISOString()
-          });
 
           // Update lead status
           if (call.leadId) {
@@ -281,11 +264,6 @@ export async function POST(
       data: { status: 'Initiated' }
     });
 
-    console.log('Campaign processing completed:', {
-      campaignId,
-      processedCalls: pendingCalls.length,
-      timestamp: new Date().toISOString()
-    });
 
     return NextResponse.json({ 
       message: 'Campaign calls initiated successfully',

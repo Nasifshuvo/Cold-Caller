@@ -6,7 +6,7 @@ import { CallStatus, ACTIVE_CALL_STATUSES } from '@/types/callStatus';
  */
 export enum CampaignStatus {
   DRAFT = 'Draft',
-  RUNNING = 'Running',
+  INITIATED = 'Initiated',
   COMPLETED = 'Completed',
   PAUSED = 'Paused',
 }
@@ -63,9 +63,8 @@ export async function checkAndUpdateCampaignStatus(campaignId: number | null) {
     const totalDuration = campaign.calls
       .filter(call => call.callStatus === CallStatus.COMPLETED)
       .reduce((total, call) => total + (call.durationInSeconds || 0), 0);
-
     // If there are no active calls and the campaign is running, mark it as completed
-    if (activeCalls === 0 && campaign.status === CampaignStatus.RUNNING) {
+    if (activeCalls === 0 && campaign.status === CampaignStatus.INITIATED) {
       newStatus = CampaignStatus.COMPLETED;
       totalProcessed = totalCalls;
       console.log(`Updating campaign ${campaignId} to Completed status`);

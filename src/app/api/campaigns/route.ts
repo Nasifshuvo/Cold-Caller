@@ -11,14 +11,6 @@ prisma.$use(async (params, next) => {
   const result = await next(params);
   const after = Date.now();
   
-  console.log(`Prisma Query Details:`, {
-    model: params.model,
-    action: params.action,
-    args: params.args,
-    duration: `${after - before}ms`,
-    query: params,
-    timestamp: new Date().toISOString()
-  });
   
   return result;
 });

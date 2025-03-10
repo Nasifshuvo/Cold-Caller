@@ -26,7 +26,6 @@ export async function createOutboundCall(customerPhoneNumber: string): Promise<C
       }
     };
 
-    console.log('Creating VAPI call with payload:', payload);
 
     // Make the API call
     const response = await fetch("https://api.vapi.ai/call", {
@@ -45,7 +44,6 @@ export async function createOutboundCall(customerPhoneNumber: string): Promise<C
     }
 
     const call = await response.json();
-    console.log('VAPI call created successfully:', call);
     
     if (!call.id) {
       throw new Error('Failed to get call ID from VAPI');

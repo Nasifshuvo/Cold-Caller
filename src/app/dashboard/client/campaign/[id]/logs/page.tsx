@@ -302,7 +302,6 @@ export default function CampaignLogs() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ended Reason</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Started At</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Minutes Used</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Response</th>
                 </tr>
               </thead>
@@ -323,9 +322,6 @@ export default function CampaignLogs() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {isClient ? (call.durationInSeconds ? `${call.durationInSeconds}s` : '') : ''}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {isClient ? (call.durationInSeconds ? (call.durationInSeconds / 60).toFixed(2) : '') : ''}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <button 

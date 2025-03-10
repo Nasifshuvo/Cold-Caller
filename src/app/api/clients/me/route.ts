@@ -9,15 +9,7 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.log("The session", session);
-    console.log("The user ID", session.user.id);
 
-    // Log the query we're about to make
-    console.log("Attempting to find client with query:", {
-      where: {
-        userId: session.user.id
-      }
-    });
 
     try {
       const client = await prisma.client.findFirst({
@@ -41,7 +33,6 @@ export async function GET() {
           updatedAt: true
         }
       });
-      console.log("Database response:", client);
 
       if (!client) {
         return NextResponse.json({ error: 'Client not found' }, { status: 404 });
