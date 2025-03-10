@@ -153,7 +153,7 @@ export async function POST(request: Request) {
             type: "DEBIT",
             clientId: client.client.id,
             reason: "Call Cost",
-            reference: campaignId?.toString() || "-",
+            reference: updatedCall.vapiCallId,
             phoneNumber: updatedCall.customerNumber,
             processed: false // Initially set to false
           }
