@@ -7,10 +7,7 @@ import { LeadsData } from '@/types/leadsData';
 
 // Add query logging
 prisma.$use(async (params, next) => {
-  const before = Date.now();
   const result = await next(params);
-  const after = Date.now();
-  
   
   return result;
 });
