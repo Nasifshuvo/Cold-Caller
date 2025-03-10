@@ -14,7 +14,6 @@ async function initializeVapiConfig() {
     try {
       const session = await getServerSession(authOptions);
       
-      console.log('Debug - Session:', session); // Debug session
       
       // If no session, initialize with empty config
       if (!session?.user?.id) {
@@ -36,13 +35,6 @@ async function initializeVapiConfig() {
         }
       });
 
-      console.log('Debug - Client data:', {
-        found: !!client,
-        hasVapiKey: !!client?.vapiKey,
-        hasAssistantId: !!client?.vapiAssistantId,
-        hasPhoneId: !!client?.vapiPhoneNumberId,
-        clientData: client
-      }); // Debug client data
 
       if (!client || !client.vapiKey || !client.vapiAssistantId || !client.vapiPhoneNumberId) {
         console.warn('No active Vapi settings found');
@@ -58,7 +50,7 @@ async function initializeVapiConfig() {
           transcriptionEnabled: true,
         }
       });
-      console.log('Debug - Vapi initialized successfully'); // Debug successful initialization
+      
       return true;
     } catch (error) {
       console.error('Failed to initialize Vapi config:', error);
@@ -76,7 +68,6 @@ export default async function ClientLayout({
   const isConfigured = await initializeVapiConfig();
   try {
     const session = await auth();
-    console.log('Session:', session); // Debug log
 
     if (!session) {
       console.log('No session, redirecting to signin'); // Debug log

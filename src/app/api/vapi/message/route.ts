@@ -140,15 +140,6 @@ export async function POST(request: Request) {
       if (campaignId) {
         console.log("Checking and updating campaign status for campaign ID:", campaignId);
         await checkAndUpdateCampaignStatus(campaignId);
-        await prisma.campaign.update({
-          where: { id: campaignId },
-          data: {
-            actualSeconds: {
-              increment: new Prisma.Decimal(updatedCall.durationInSeconds || 0)
-            }
-          }
-        });
-        
       }
 
       const final_duration_in_seconds = body.message.durationSeconds;

@@ -67,7 +67,7 @@ export default function ClientsPage() {
       email: formData.get('email'),
       phone: formData.get('phone'),
       password: formData.get('password'),
-      balanceInSeconds: parseFloat(formData.get('balanceInSeconds') as string) || 0,
+      balanceInSeconds: (parseFloat(formData.get('balanceInSeconds') as string) || 0) * 60, // Convert minutes to seconds
       vapiKey: formData.get('vapiKey') || undefined,
       vapiAssistantId: formData.get('vapiAssistantId') || undefined,
       vapiPhoneNumberId: formData.get('vapiPhoneNumberId') || undefined,
@@ -263,15 +263,12 @@ export default function ClientsPage() {
                   placeholder="Enter password"
                 />
 
-                <label htmlFor="balanceInSeconds" className="block text-sm font-medium text-gray-700">
-                  Initial Balance (minutes)
-                </label>
-                <input
+                <Input
+                  label="Initial Balance (minutes)"
                   type="number"
                   name="balanceInSeconds"
                   id="balanceInSeconds"
                   step="0.01"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   placeholder="Enter initial balance in minutes"
                 />
 
