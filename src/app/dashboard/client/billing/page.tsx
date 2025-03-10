@@ -9,6 +9,7 @@ interface Transaction {
   createdAt: string;
   reason?: string;
   reference?: string;
+  phoneNumber?: string;
 }
 
 export default function BillingPage() {
@@ -62,6 +63,9 @@ export default function BillingPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Reference
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Phone Number
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -87,6 +91,9 @@ export default function BillingPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {transaction.reference || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {transaction.phoneNumber || '-'}
                   </td>
                 </tr>
               ))}
