@@ -169,7 +169,7 @@ export async function POST(
         if (callResponse.id) {
           // Update call record
           console.log('Updating call record with VAPI response...');
-          const updatedCall = await prisma.call.update({
+          await prisma.call.update({
             where: {
               id: call.id
             },
