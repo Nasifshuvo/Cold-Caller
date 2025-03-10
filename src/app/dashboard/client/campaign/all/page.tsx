@@ -8,6 +8,8 @@ import {
   ClipboardDocumentListIcon,
   PencilSquareIcon
 } from "@heroicons/react/24/outline";
+import { Decimal } from '@prisma/client/runtime/library';
+import { formatBalance } from '@/lib/utils/format';
 
 interface Campaign {
   id: number;
@@ -17,6 +19,7 @@ interface Campaign {
   totalLeads: number;
   processedLeads: number;
   createdAt: string;
+  actualSeconds: Decimal;
 }
 
 // Create a client-only component for the table
@@ -43,6 +46,9 @@ const CampaignTable = dynamic(() => Promise.resolve(({ campaigns, getStatusColor
         </th>
         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
           Progress
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Duration
         </th>
         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
           Created At
@@ -72,6 +78,9 @@ const CampaignTable = dynamic(() => Promise.resolve(({ campaigns, getStatusColor
             <div className="text-sm text-gray-900">
               {campaign.processedLeads}/{campaign.totalLeads}
             </div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {campaign.actualSeconds ? formatBalance(Number(campaign.actualSeconds)) : '-'}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
             {formatDate(campaign.createdAt)}

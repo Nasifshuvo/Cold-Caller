@@ -136,9 +136,19 @@ export async function POST(request: Request) {
       }
 
       // Check and update campaign status if there's a campaign associated with this call or lead
-      const campaignId = updatedCall.campaignId || updatedCall.lead?.campaignId;
+      const campaignId = updatedCall.campaignId;
       if (campaignId) {
+        console.log("Checking and updating campaign status for campaign ID:", campaignId);
         await checkAndUpdateCampaignStatus(campaignId);
+        await prisma.campaign.update({
+          where: { id: campaignId },
+          data: {
+            actualSeconds: {
+              increment: new Prisma.Decimal(updatedCall.durationInSeconds || 0)
+            }
+          }
+        });
+        
       }
 
       const final_duration_in_seconds = body.message.durationSeconds;
@@ -152,7 +162,7 @@ export async function POST(request: Request) {
             type: "DEBIT",
             clientId: client.client.id,
             reason: "Call Cost",
-            reference: callId,
+            reference: updatedCall.customerNumber,
             processed: false // Initially set to false
           }
         });

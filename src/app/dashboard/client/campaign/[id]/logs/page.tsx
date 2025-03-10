@@ -299,6 +299,7 @@ export default function CampaignLogs() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ended Reason</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Started At</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Minutes Used</th>
@@ -313,6 +314,9 @@ export default function CampaignLogs() {
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(call.callStatus)}`}>
                         {call.callStatus}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {call.endedReason}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {isClient ? formatDate(call.createdAt) : ''}
