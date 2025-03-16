@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { formatBalance, formatEndReason } from '@/lib/utils/format';
+import { formatEndReason } from '@/lib/utils/format';
 
 interface Call {
   id: number;
