@@ -21,4 +21,18 @@ export function formatBalance(seconds: number | string | null | undefined): stri
   }
 
   return `${minutes} min ${remainingSeconds} sec`;
+}
+
+/**
+ * Formats a call end reason into a human-readable string
+ * @param reason - The call end reason from VAPI (e.g., "customer-ended-call")
+ * @returns Formatted string (e.g., "Customer Ended Call")
+ */
+export function formatEndReason(reason: string | null | undefined): string {
+  if (!reason) return 'Unknown';
+  
+  return reason
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 } 
