@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { formatBalance, formatEndReason } from '@/lib/utils/format';
 
 interface Call {
   id: number;
@@ -101,6 +102,16 @@ export default function CampaignLogs() {
   const [isClient, setIsClient] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+
+  // Calculate call statistics
+  const getCallStats = useCallback(() => {
+    const stats = {
+      completed: calls.filter(call => call.callStatus.toLowerCase() === 'completed').length,
+      failed: calls.filter(call => ['failed', 'error'].includes(call.callStatus.toLowerCase())).length,
+      inProgress: calls.filter(call => ['initiated', 'in progress'].includes(call.callStatus.toLowerCase())).length
+    };
+    return stats;
+  }, [calls]);
 
   const fetchCampaignDetails = useCallback(async () => {
     if (!params?.id) return;
@@ -283,7 +294,26 @@ export default function CampaignLogs() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Progress</p>
-                <p className="font-medium">{campaign.processedLeads}/{campaign.totalLeads} calls processed</p>
+                <div className="space-y-1">
+                  <p className="font-medium">{campaign.processedLeads}/{campaign.totalLeads} calls processed</p>
+                  <div className="text-sm space-y-1">
+                    {getCallStats().completed > 0 && (
+                      <p className="text-green-600">
+                        {getCallStats().completed}/{campaign.totalLeads} calls completed
+                      </p>
+                    )}
+                    {getCallStats().failed > 0 && (
+                      <p className="text-red-600">
+                        {getCallStats().failed}/{campaign.totalLeads} calls failed
+                      </p>
+                    )}
+                    {getCallStats().inProgress > 0 && (
+                      <p className="text-blue-600">
+                        {getCallStats().inProgress}/{campaign.totalLeads} calls in progress
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -314,8 +344,8 @@ export default function CampaignLogs() {
                         {call.callStatus}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {call.endedReason}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatEndReason(call.endedReason)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {isClient ? formatDate(call.createdAt) : ''}
@@ -324,12 +354,16 @@ export default function CampaignLogs() {
                       {isClient ? (call.durationInSeconds ? `${call.durationInSeconds}s` : '') : ''}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <button 
-                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-xs font-medium transition-colors"
-                        onClick={() => setSelectedResponse(call.analysis?.summary || call.response || call.endedReason || '')}
-                      >
-                        View Response
-                      </button>
+                      {(call.analysis?.summary || call.response || call.endedReason) ? (
+                        <button 
+                          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-xs font-medium transition-colors"
+                          onClick={() => setSelectedResponse(call.analysis?.summary || call.response || call.endedReason || '')}
+                        >
+                          View Response
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">No response</span>
+                      )}
                     </td>
                   </tr>
                 ))}
